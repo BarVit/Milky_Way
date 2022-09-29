@@ -19,7 +19,6 @@ public class Movement : MonoBehaviour
     private Vector3 vector3_check;
 
     [SerializeField] private float target_angle;
-    //[SerializeField] private string target_side;
     [SerializeField] public string target_orient;
     [SerializeField] private string target_range;
     
