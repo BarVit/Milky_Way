@@ -1,2 +1,2 @@
 # Milky-Way
-Strategic rpg game
+Strategic RPG Game
