@@ -61,22 +61,9 @@ public class Movement : MonoBehaviour
     private void Ship_start()
     {
         Debug.Log("Start");
-        //this.transform.rotation = Quaternion.RotateTowards(this.transform.rotation, Quaternion.Euler(0, 0, 50), 5f);
+        //Горизонтальное покачивание в режиме покоя
+        //123
 
-        //int i = Random.Range(1, 3);
-        //int i_count=i;
-
-        //if (i_count < 4)
-        //{
-        //    for (int iter = 1; iter <= i; i++)
-        //    {
-        //        i_count += i;
-        //    }
-        //}
-        //else
-        //{
-        //    i_count = 0;
-        //}
     }
     IEnumerator Ship_forward_attack()
     {
