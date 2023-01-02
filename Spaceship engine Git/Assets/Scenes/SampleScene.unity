@@ -615,6 +615,7 @@ MonoBehaviour:
   target: {fileID: 241076070}
   orbitPoint: {fileID: 0}
   ship_speed: 0
+  ship_side_speed: 0
   ship_calc_speed: 0
   ship_turn_speed: 0
   ship_calc_turn_speed: 0
@@ -856,6 +857,7 @@ MonoBehaviour:
   target: {fileID: 241076070}
   orbitPoint: {fileID: 841396594}
   ship_speed: 0
+  ship_side_speed: 0
   ship_calc_speed: 0
   ship_turn_speed: 0
   ship_calc_turn_speed: 0
@@ -1048,7 +1050,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1648949637}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -320.1, y: 0, z: -15.8}
+  m_LocalPosition: {x: -3.9, y: 0, z: -2.2}
   m_LocalScale: {x: 0.5, y: 0.5, z: 3}
   m_ConstrainProportionsScale: 0
   m_Children: []
