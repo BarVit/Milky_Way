@@ -10,6 +10,11 @@ public class Orbit_render : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        
+    }
+
+    private void Update()
+    {
         DrawCircle(100, 30);
     }
 
