@@ -70,7 +70,7 @@ public class Movement : MonoBehaviour
     }
     private void FixedUpdate()
     {
-        //Debug.DrawRay(this.transform.position, this.transform.forward * 50);
+        Debug.DrawRay(this.transform.position, this.transform.forward * 200);
         //Debug.DrawRay(this.transform.position, (target.transform.position - this.transform.position) * 50);
     }
     private void Ship_start()
@@ -79,6 +79,220 @@ public class Movement : MonoBehaviour
         //Горизонтальное покачивание в режиме покоя
         //123
 
+    }
+
+    IEnumerator Ship_front_attack()
+    {
+        Debug.Log("Front attack");
+        while (true)
+        {
+            switch (target_range)
+            {
+                case "longrange":
+                    if (target_orient == "back")
+                    {
+                        if (ship_speed > 10)
+                        {
+                            ship_speed -= 3f;
+                        }
+                        else
+                        {
+                            ship_speed += 1f;
+                        }
+                        if (ship_turn_speed < 50)
+                        {
+                            ship_turn_speed += 2f;
+                        }
+                    }
+                    if (target_orient == "forward")
+                    {
+                        if (ship_speed < 50)
+                        {
+                            ship_speed += 3f;
+                        }
+                        else
+                        {
+                            ship_speed -= 1f;
+                        }
+                        if (ship_turn_speed > 10)
+                        {
+                            ship_turn_speed -= 1f;
+                        }
+                    }
+                    if (target_orient == "side")
+                    {
+                        if (ship_speed > 10)
+                        {
+                            ship_speed -= 1f;
+                        }
+                        else
+                        {
+                            ship_speed += 1f;
+                        }
+                        if (ship_turn_speed < 50)
+                        {
+                            ship_turn_speed += 3f;
+                        }
+                    }
+                    break;
+                case "middlerange":
+                    if (target_orient == "back")
+                    {
+                        if (ship_speed > 10)
+                        {
+                            ship_speed -= 3f;
+                        }
+                        else
+                        {
+                            ship_speed += 1f;
+                        }
+                        if (ship_turn_speed < 50)
+                        {
+                            ship_turn_speed += 2f;
+                        }
+                    }
+                    if (target_orient == "forward")
+                    {
+                        ship_break_distance = ship_speed * ship_speed / (10 * 2);
+                        if (target_distance < orbit_range * 1.03f)
+                        {
+                            if (ship_speed > 0)
+                            {
+                                ship_speed -= 0.5f;
+                            }
+                            else
+                            {
+                                ship_speed += 0.5f;
+                            }
+                            if (ship_turn_speed < 50)
+                            {
+                                ship_turn_speed += 2f;
+                            }
+                            else
+                            {
+                                ship_turn_speed -= 1f;
+                            }
+                        }
+                        else if (target_distance < ship_break_distance + orbit_range * 1.1f || target_distance < orbit_range * 1.1f)
+                        {
+                            if (ship_speed > 5)
+                            {
+                                ship_speed -= 2f;
+                            }
+                            else
+                            {
+                                ship_speed += 1f;
+                            }
+                            if (ship_turn_speed < 50)
+                            {
+                                ship_turn_speed += 2f;
+                            }
+                            else
+                            {
+                                ship_turn_speed -= 1f;
+                            }
+                        }
+                        else if (target_distance < 3 * orbit_range )
+                        {
+                            if (ship_speed > 30)
+                            {
+                                ship_speed -= 2f;
+                            }
+                            else
+                            {
+                                ship_speed += 1f;
+                            }
+                            if (ship_turn_speed < 30)
+                            {
+                                ship_turn_speed += 2f;
+                            }
+                            else
+                            {
+                                ship_turn_speed -= 1f;
+                            }
+                        }
+                        else if (target_distance > 3 * orbit_range)
+                        {
+                            if (ship_speed < 50)
+                            {
+                                ship_speed += 2f;
+                            }
+                            else
+                            {
+                                ship_speed -= 1f;
+                            }
+                        }
+                        if (ship_turn_speed > 10)
+                        {
+                            ship_turn_speed -= 1f;
+                        }
+                    }
+                    if (target_orient == "side")
+                    {
+                        if (ship_speed > 10)
+                        {
+                            ship_speed -= 3f;
+                        }
+                        else
+                        {
+                            ship_speed += 1f;
+                        }
+                        if (ship_turn_speed < 50)
+                        {
+                            ship_turn_speed += 2f;
+                        }
+                    }
+                    break;
+                case "shortrange":
+                    if (target_orient == "back")
+                    {
+                        if (ship_speed > 5)
+                        {
+                            ship_speed -= 2f;
+                        }
+                        else
+                        {
+                            ship_speed += 1f;
+                        }
+                        if (ship_turn_speed < 50)
+                        {
+                            ship_turn_speed += 2f;
+                        }
+                    }
+                    if (target_orient == "forward")
+                    {
+                        if (ship_speed > -5)
+                        {
+                            ship_speed -= 1f;
+                        }
+                        else
+                        {
+                            ship_speed += 1f;
+                        }
+                        if (ship_turn_speed < 50)
+                        {
+                            ship_turn_speed += 2f;
+                        }
+                    }
+                    if (target_orient == "side")
+                    {
+                        if (ship_speed > 0)
+                        {
+                            ship_speed -= 2f;
+                        }
+                        else
+                        {
+                            ship_speed += 1f;
+                        }
+                        if (ship_turn_speed < 50)
+                        {
+                            ship_turn_speed += 2f;
+                        }
+                    }
+                    break;
+            }
+            yield return new WaitForSeconds(0.1f);
+        }
     }
     IEnumerator Ship_forward_attack()
     {
@@ -1002,22 +1216,29 @@ public class Movement : MonoBehaviour
         Where_target();
         //Target_speed();
 
-        //Прямая атака
+        //Подлететь и атаковать
         if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            StopAllCoroutines();
+            moving_type = "front_attack";
+            StartCoroutine(Ship_front_attack());
+        }
+        //Прямая атака с уходом
+        if (Input.GetKeyDown(KeyCode.Alpha2))
         {
             StopAllCoroutines();
             moving_type = "forward_attack";
             StartCoroutine(Ship_forward_attack());
         }
         //Боковая орбита
-        if (Input.GetKeyDown(KeyCode.Alpha2))
+        if (Input.GetKeyDown(KeyCode.Alpha3))
         {
             StopAllCoroutines();
             moving_type = "side_orbit";
             StartCoroutine(Ship_side_orbit());
         }
         //Круговая орбита
-        if (Input.GetKeyDown(KeyCode.Alpha3))
+        if (Input.GetKeyDown(KeyCode.Alpha4))
         {
             StopAllCoroutines();
             moving_type = "orbit";
@@ -1053,8 +1274,14 @@ public class Movement : MonoBehaviour
         //{
         //    ship_real_speed = ship_max_back_speed;
         //}
-
-        if (moving_type == "forward_attack")
+        if (moving_type == "front_attack")
+        {
+            q_ship = Quaternion.LookRotation(this.transform.position - target.transform.position);
+            q_ship *= Quaternion.Euler(0, 180, 0);
+            this.transform.rotation = Quaternion.RotateTowards(this.transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
+            this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
+        }
+        else if (moving_type == "forward_attack")
         {
             if (target_range != "shortrange")
             {
@@ -1132,7 +1359,7 @@ public class Movement : MonoBehaviour
                         orbit_point.x = target.transform.position.x + a * Mathf.Sin(fi);
                         orbit_point.z = target.transform.position.z - a * Mathf.Cos(fi);
                     }
-                    orbitPoint.transform.position = orbit_point;
+                    //orbitPoint.transform.position = orbit_point;
 
                     q_ship = Quaternion.LookRotation(this.transform.position - orbit_point);
                     q_ship *= Quaternion.Euler(0, 180, 0);

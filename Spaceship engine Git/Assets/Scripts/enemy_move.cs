@@ -6,39 +6,122 @@ public class enemy_move : MonoBehaviour
 {
     public GameObject ship;
     public float speed;
+    public float max_speed;
     public float side_speed;
     public float turn_speed;
     float ship_distance;
     Vector3 targetPoint;
-    
     Quaternion q;
 
     string move_type;
     bool isRotate;
+    bool isToTarget;
+    bool isBusy;
+    bool isNewPoint;
 
-    Vector3 line_a = new Vector3(0, 0, 0);
-    Vector3 line_b = new Vector3(30, 0, 0);
-
-    Vector3 tri_a = new Vector3(0, 0, 0);
-    Vector3 tri_b = new Vector3(15, 0, 20);
-    Vector3 tri_c = new Vector3(30, 0, 0);
-
-    Vector3 sq_a = new Vector3(0, 0, 0);
-    Vector3 sq_b = new Vector3(0, 0, 30);
-    Vector3 sq_c = new Vector3(30, 0, 30);
-    Vector3 sq_d = new Vector3(30, 0, 0);
-
+    Vector3[] waypoints;
+    //, waypoints_line, waypoints_tri, waypoints_sq, waypoints_random;
+    Vector3[] waypoints_line = {new Vector3(0, 0, 0),
+                                 new Vector3(30, 0, 0)};
+    Vector3[] waypoints_tri = {new Vector3(0, 0, 0),
+                               new Vector3(15, 0, 20),
+                               new Vector3(30, 0, 0)};
+    Vector3[] waypoints_sq = {new Vector3(0, 0, 0),
+                            new Vector3(0, 0, 30),
+                            new Vector3(30, 0, 30),
+                            new Vector3(30, 0, 0)};
 
     // Start is called before the first frame update
     void Start()
     {
-        speed = 10;
+        speed = 0;
+        max_speed = 7;
         side_speed = 0;
         turn_speed = 30;
+        isBusy = false;
         targetPoint = this.transform.position;
     }
 
-    // Update is called once per frame
+    IEnumerator Change_speed(float new_speed)
+    {
+        isBusy = true;
+        if (new_speed > max_speed)
+        {
+            new_speed = max_speed;
+        }
+        else if (new_speed < 0)
+        {
+            new_speed = 0;
+        }
+        while (speed != new_speed)
+        {
+            //Debug.Log(speed);
+            if (speed < new_speed)
+            {
+                speed += max_speed * 0.1f;
+            }
+            else if (speed > new_speed)
+            {
+                speed -= max_speed * 0.1f;
+            }
+            if (Mathf.Abs(speed - new_speed) < max_speed * 0.09f)
+            {
+                speed = new_speed;
+            }
+            yield return new WaitForSeconds(0.1f);
+        }
+        isBusy = false;
+    }
+    Vector3 ClosePoint(Vector3[] point)
+    {
+        float distance, min_distance;
+        int count = 0;
+        min_distance = (this.transform.position - point[0]).sqrMagnitude;
+        for (int i = 0; i < point.Length; i++)
+        {
+            distance = (this.transform.position - point[i]).sqrMagnitude;
+            if (distance < min_distance)
+            {
+                min_distance = distance;
+                count = i;
+            }
+        }
+        return point[count];
+    }
+    Vector3 NextPoint(Vector3[] point)
+    {
+        float distance, zero_distance;
+        int count = 0;
+        zero_distance = 0.5f;
+        if (point.Length == 1)
+        {
+            return point[0];
+        }
+        for (int i = 0; i < point.Length; i++)
+        {
+            distance = (this.transform.position - point[i]).sqrMagnitude;
+            if (distance < zero_distance)
+            {
+                if (point.Length == 2)
+                {
+                    count = (1 - i) + (i - 1) * i;
+                }
+                else
+                {
+                    if (i <= point.Length - 2)
+                    {
+                        count = i + 1;
+                    }
+                    else
+                    {
+                        count = 0;
+                    }
+                }
+                break;
+            }
+        }
+        return point[count];
+    }
     void Update()
     {
         ship_distance = (ship.transform.position - this.transform.position).magnitude;
@@ -47,45 +130,66 @@ public class enemy_move : MonoBehaviour
         {
             move_type = "stop";
             isRotate = false;
+            isToTarget = false;
         }
         //движение туда-сюда
         if (Input.GetKeyDown(KeyCode.Q))
         {
             move_type = "line";
-            targetPoint = line_a;
             isRotate = false;
+            isToTarget = false;
+            waypoints = waypoints_line;
+            targetPoint = ClosePoint(waypoints);
+            isNewPoint = true;
+            StartCoroutine(Change_speed(max_speed));
         }
         //движение по треугольнику
         if (Input.GetKeyDown(KeyCode.W))
         {
             move_type = "tri";
-            targetPoint = tri_a;
+            waypoints = waypoints_tri;
             isRotate = false;
+            isToTarget = false;
+            targetPoint = ClosePoint(waypoints);
+            isNewPoint = true;
+            StartCoroutine(Change_speed(max_speed));
         }
         //движение по квадрату
         if (Input.GetKeyDown(KeyCode.E))
         {
             move_type = "sq";
-            targetPoint = sq_a;
-            isRotate = false;
+            waypoints = waypoints_sq;
+            isRotate = false;            
+            targetPoint = ClosePoint(waypoints);
+            isNewPoint = true;
+            //прописать поворот на первую ближайшую точку
+            StartCoroutine(Change_speed(max_speed));
         }
         //движение по кругу
         if (Input.GetKeyDown(KeyCode.R))
         {
             move_type = "orbit";
             isRotate = true;
+            isToTarget = false;
         }
         //движение за кораблем
         if (Input.GetKeyDown(KeyCode.T))
         {
             move_type = "toShip";
             isRotate = false;
+            isToTarget = false;
         }
         //движение от корабля
         if (Input.GetKeyDown(KeyCode.Y))
         {
             move_type = "fromShip";
             isRotate = false;
+            isToTarget = false;
+        }
+        //атака игрока по орбите на 0,5 от дальности стрельбы
+        if (Input.GetKeyDown(KeyCode.A))
+        {
+            //сделать аналогично поведению игрока
         }
 
         switch (move_type)
@@ -94,45 +198,55 @@ public class enemy_move : MonoBehaviour
                 targetPoint = this.transform.position;
                 break;
             case "line":
-                if ((line_a - this.transform.position).magnitude < 0.5)
-                {
-                    targetPoint = line_b;
-                }
-                else if ((line_b - this.transform.position).magnitude < 0.5)
-                {
-                    targetPoint = line_a;
-                }
-                break;
             case "tri":
-                if ((tri_a - this.transform.position).magnitude < 0.5)
+                if (((this.transform.position - targetPoint).sqrMagnitude < 0.5) && !isNewPoint)
                 {
-                    targetPoint = tri_b;
+                    targetPoint = NextPoint(waypoints);
+                    isNewPoint = true;
+                    if (!isBusy)
+                    {
+                        StartCoroutine(Change_speed(max_speed));
+                    }
                 }
-                else if ((tri_b - this.transform.position).magnitude < 0.5)
+                if ((this.transform.position - targetPoint).sqrMagnitude < 36 && isNewPoint)
                 {
-                    targetPoint = tri_c;
-                }
-                else if ((tri_c - this.transform.position).magnitude < 0.5)
-                {
-                    targetPoint = tri_a;
+                    isNewPoint = false;
+                    if (!isBusy)
+                    {
+                        StartCoroutine(Change_speed(max_speed * 0.2f));
+                    }
                 }
                 break;
             case "sq":
-                if ((sq_a - this.transform.position).magnitude < 0.5)
+                if (((this.transform.position - targetPoint).sqrMagnitude < 0.5) && !isNewPoint)
                 {
-                    targetPoint = sq_b;
+                    targetPoint = NextPoint(waypoints);
+                    isNewPoint = true;
+                    if (!isBusy && (Vector3.Angle(targetPoint - this.transform.position, this.transform.forward) < 2))
+                    {
+                        StartCoroutine(Change_speed(max_speed));
+                        isToTarget = false;
+                    }
+                    else if (Vector3.Angle(targetPoint - this.transform.position, this.transform.forward) >= 2)
+                    {
+                        StartCoroutine(Change_speed(0));
+                        isToTarget = true;
+                    }
                 }
-                else if ((sq_b - this.transform.position).magnitude < 0.5)
+                if (speed == 0 && Vector3.Angle(targetPoint - this.transform.position, this.transform.forward) < 2)
                 {
-                    targetPoint = sq_c;
+                    if (!isBusy)
+                    {
+                        StartCoroutine(Change_speed(max_speed));
+                    }
                 }
-                else if ((sq_c - this.transform.position).magnitude < 0.5)
+                if ((this.transform.position - targetPoint).sqrMagnitude < 36 && isNewPoint)
                 {
-                    targetPoint = sq_d;
-                }
-                else if ((sq_d - this.transform.position).magnitude < 0.5)
-                {
-                    targetPoint = sq_a;
+                    isNewPoint = false;
+                    if (!isBusy)
+                    {
+                        StartCoroutine(Change_speed(max_speed * 0.2f));
+                    }
                 }
                 break;
             case "orbit":
@@ -147,7 +261,7 @@ public class enemy_move : MonoBehaviour
                 else
                 {
                     targetPoint = this.transform.position;
-                }                
+                }
                 break;
             case "fromShip":
                 targetPoint = this.transform.position + (this.transform.position - ship.transform.position);
@@ -156,6 +270,12 @@ public class enemy_move : MonoBehaviour
         if (!isRotate)
         {
             transform.position = Vector3.MoveTowards(this.transform.position, targetPoint, speed * Time.deltaTime);
-        }        
+        }
+        if (isToTarget)
+        {
+            q = Quaternion.LookRotation(this.transform.position - targetPoint);
+            q *= Quaternion.Euler(0, 180, 0);
+            this.transform.rotation = Quaternion.RotateTowards(this.transform.rotation, q, Time.deltaTime * turn_speed);
+        }
     }
 }
