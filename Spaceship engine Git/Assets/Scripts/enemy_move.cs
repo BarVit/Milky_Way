@@ -124,7 +124,8 @@ public class enemy_move : MonoBehaviour
     }
     void Update()
     {
-        ship_distance = (ship.transform.position - this.transform.position).magnitude;
+        ship_distance = (ship.transform.position - this.transform.position).magnitude;        
+
         //остановка
         if (Input.GetKeyDown(KeyCode.Space))
         {
