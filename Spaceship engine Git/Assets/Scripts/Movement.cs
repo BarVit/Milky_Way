@@ -70,12 +70,12 @@ public class Movement : MonoBehaviour
     }
     private void FixedUpdate()
     {
-        Debug.DrawRay(this.transform.position, this.transform.forward * 200);
+        //Debug.DrawRay(this.transform.position, this.transform.forward * 200);
         //Debug.DrawRay(this.transform.position, (target.transform.position - this.transform.position) * 50);
     }
     private void Ship_start()
     {
-        Debug.Log("Start");
+        //Debug.Log("Start");
         //Горизонтальное покачивание в режиме покоя
         //123
 
@@ -836,7 +836,7 @@ public class Movement : MonoBehaviour
                         }
                         else if (target_distance > 2 * orbit_range)
                         {
-                            if (ship_speed > 35)
+                            if (ship_speed > 30)
                             {
                                 ship_speed -= 1f;
                             }
@@ -885,15 +885,14 @@ public class Movement : MonoBehaviour
                             {
                                 ship_speed -= 1f;
                             }
-                            if (ship_turn_speed > 10)
+                            if (ship_turn_speed < 10)
                             {
                                 ship_turn_speed -= 2f;
                             }
                         }
                         else if (target_distance > 2 * orbit_range)
                         {
-                            //if (ship_speed > ship_calc_speed * 2)
-                            if (ship_speed > 35)
+                            if (ship_speed > 30)
                             {
                                 ship_speed -= 2f;
                             }
@@ -960,6 +959,8 @@ public class Movement : MonoBehaviour
                     {
                         ship_turn_speed -= 1f;
                     }
+
+
                     if (target_orient == "forward" || target_orient == "back")
                     {
                         if (ship_speed > 5)
@@ -969,6 +970,14 @@ public class Movement : MonoBehaviour
                         else if (ship_speed < 0)
                         {
                             ship_speed += 1f;
+                        }
+                        if (ship_turn_speed < ship_max_turn_speed)
+                        {
+                            ship_turn_speed += 2f;
+                        }
+                        else
+                        {
+                            ship_turn_speed -= 1f;
                         }
                     }
                     if (target_orient == "side")
@@ -980,33 +989,77 @@ public class Movement : MonoBehaviour
                             {
                                 if (ship_speed < ship_calc_speed * ((target_distance / orbit_range) + 0.01))
                                 {
-                                    ship_speed += 0.5f;
+                                    ship_speed += 1f;
                                 }
                                 else
                                 {
-                                    ship_speed -= 0.5f;
+                                    ship_speed -= 1f;
+                                }
+                                if (ship_turn_speed < ship_calc_turn_speed)
+                                {
+                                    ship_turn_speed += 2f;
+                                }
+                                else
+                                {
+                                    ship_turn_speed -= 1f;
                                 }
                             }
                             else if (target_distance < orbit_range * 0.8)
                             {
-                                if (ship_speed < ship_calc_speed * ((target_distance / orbit_range) + 0.02))
+                                if (ship_speed < ship_calc_speed * ((target_distance / orbit_range) + 0.005))
                                 {
-                                    ship_speed += 0.5f;
+                                    ship_speed += 1f;
                                 }
                                 else
                                 {
-                                    ship_speed -= 0.5f;
+                                    ship_speed -= 1f;
+                                }
+                                if (ship_turn_speed > ship_calc_turn_speed)
+                                {
+                                    ship_turn_speed -= 1f;
+                                }
+                                else
+                                {
+                                    ship_turn_speed += 1f;
                                 }
                             }
-                            else
+                            //диапазон от 0,8 до 0,95 орбиты
+                            else if (target_distance < orbit_range * 0.95)
                             {
-                                if (ship_speed < ship_calc_speed * (target_distance / orbit_range))
+                                if (ship_speed < ship_calc_speed * (target_distance / orbit_range + 0.01))
                                 {
                                     ship_speed += 0.5f;
                                 }
                                 else
                                 {
                                     ship_speed -= 0.5f;
+                                }
+                                if (ship_turn_speed > ship_calc_turn_speed)
+                                {
+                                    ship_turn_speed -= 1f;
+                                }
+                                else
+                                {
+                                    ship_turn_speed += 1f;
+                                }
+                            }
+                            else //диапазон от 0,95 до 1,0 орбиты
+                            {
+                                if (ship_speed < ship_calc_speed)
+                                {
+                                    ship_speed += 0.5f;
+                                }
+                                else
+                                {
+                                    ship_speed -= 0.5f;
+                                }
+                                if (ship_turn_speed > ship_calc_turn_speed)
+                                {
+                                    ship_turn_speed -= 1f;
+                                }
+                                else
+                                {
+                                    ship_turn_speed += 1f;
                                 }
                             }
                         }
@@ -1024,6 +1077,14 @@ public class Movement : MonoBehaviour
                             else
                             {
                                 ship_speed += 0.5f;
+                            }
+                            if (ship_turn_speed < ship_max_turn_speed)
+                            {
+                                ship_turn_speed += 2f;
+                            }
+                            else
+                            {
+                                ship_turn_speed -= 1f;
                             }
                         }
                     }
@@ -1363,7 +1424,7 @@ public class Movement : MonoBehaviour
                 this.transform.rotation = Quaternion.RotateTowards(this.transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
                 this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
             }
-            else if (target_range == "shortrange" && target_distance < 0.95 * orbit_range)
+            else if (target_range == "shortrange" && target_distance < 0.8 * orbit_range)
             {
                 q_ship = Quaternion.LookRotation(this.transform.position - target.transform.position);
                 q_ship *= Quaternion.Euler(0, 90, 0);
@@ -1404,7 +1465,7 @@ public class Movement : MonoBehaviour
                 else
                 {
                     q_ship = Quaternion.LookRotation(this.transform.position - target.transform.position);
-                    q_ship *= Quaternion.Euler(0, 91, 0);
+                    q_ship *= Quaternion.Euler(0, 180, 0);
                     this.transform.rotation = Quaternion.RotateTowards(this.transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
                     this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
                 }
@@ -1507,5 +1568,21 @@ public class Movement : MonoBehaviour
         ship_turn_side = 1 - 2 * Random.Range(0, 2);
         yield return new WaitForSeconds(3f);
         isBusy = false;
+    }
+    Vector3 NextPosition()
+    {
+        Vector3 nextPosition;
+        float radius;
+        float _radiusDelta = 1f, _angleDelta = 5f;
+        float angle = Mathf.Atan2(vector3_check.x, vector3_check.y);
+
+        radius = target_distance;
+        radius += _radiusDelta * Time.deltaTime;
+        angle += _angleDelta * Time.deltaTime;
+
+        radius = Mathf.Min(radius, orbit_range);
+
+        nextPosition = target.transform.position + radius * new Vector3(Mathf.Cos(angle), Mathf.Sin(angle));
+        return nextPosition;
     }
 }
