@@ -10,41 +10,89 @@ public class Camera : MonoBehaviour
     float _currentRotation = 0f;
     Vector3 cameraPosition;
 
+    //для ускорения расчетов дистанция ограничения указана в квадрате
+    float zoom_max_in = 9, zoom_max_out = 40000;
+    float zoomAmount = 1.3f;
+
+    public float y_rotation, y_rotation_last;
+    Quaternion target_last_rotation, target_rotation;
+
     private void Start()
     {
         cameraPosition = target.position - transform.position;
+        target_last_rotation = target.rotation;
+        y_rotation_last = target.rotation.eulerAngles.y;
     }
 
     private void LateUpdate()
     {
-        transform.position = target.position - cameraPosition;
-
-        float mouseX = Input.GetAxis("Mouse X") * xSensitivity * Time.deltaTime;
-        float mouseY = Input.GetAxis("Mouse Y") * ySensitivity * Time.deltaTime;
-        float mouse3 = Input.GetAxis("Mouse ScrollWheel");
-
-        float tmp = Mathf.Clamp(_currentRotation + mouseY, -90f, 90f);
-        if (tmp != _currentRotation)
+        if (transform.parent == null)
         {
-            float rot = tmp - _currentRotation;
-            transform.RotateAround(target.position, transform.right, -rot);
-            _currentRotation = tmp;
+            //свободная камера, к объекту не прицеплена, нет родителя
+            transform.position = target.position - cameraPosition;
+
+            float mouseX = Input.GetAxis("Mouse X") * xSensitivity * Time.deltaTime;
+            float mouseY = Input.GetAxis("Mouse Y") * ySensitivity * Time.deltaTime;
+            float mouse3 = Input.GetAxis("Mouse ScrollWheel");
+
+            float tmp = Mathf.Clamp(_currentRotation + mouseY, -90f, 90f);
+            if (tmp != _currentRotation)
+            {
+                float rot = tmp - _currentRotation;
+                transform.RotateAround(target.position, transform.right, -rot);
+                _currentRotation = tmp;
+            }
+            if (mouseX != 0)
+            {
+                transform.RotateAround(target.position, Vector3.up, mouseX);
+            }
+
+            float zoomAmount = 1.3f;
+            if (mouse3 > 0 && (target.position - transform.position).sqrMagnitude > zoom_max_in)
+            {
+                transform.position = target.position - (target.position - transform.position) / zoomAmount;
+            }
+
+            if (mouse3 < 0 && (target.position - transform.position).sqrMagnitude < zoom_max_out)
+            {
+                transform.position = target.position - (target.position - transform.position) * zoomAmount;
+            }
+            cameraPosition = target.position - transform.position;
         }
-        if (mouseX != 0)
+        else
         {
+            //камера прицеплена к объекту, является дочерним объектом
+            y_rotation = target.rotation.eulerAngles.y;
+            //target_rotation = target.rotation;
+
+            if (target_rotation != target_last_rotation)
+            {
+                transform.RotateAround(target.position, Vector3.up, -(y_rotation - y_rotation_last));
+                y_rotation_last = target.rotation.eulerAngles.y;
+                target_last_rotation = target.rotation;
+            }
+            float mouseX = Input.GetAxis("Mouse X") * xSensitivity * Time.deltaTime;
+            float mouseY = Input.GetAxis("Mouse Y") * ySensitivity * Time.deltaTime;
+            float mouse3 = Input.GetAxis("Mouse ScrollWheel");
+
+            float tmp = Mathf.Clamp(_currentRotation + mouseY, -75f, 105f);
+            if (tmp != _currentRotation)
+            {
+                float rot = tmp - _currentRotation;
+                transform.RotateAround(target.position, transform.right, -rot);
+                _currentRotation = tmp;
+            }
             transform.RotateAround(target.position, Vector3.up, mouseX);
-        }
-        if (mouse3 > 0)
-        {
-            //доработать минимальное и максимальное приближение отдаление
-            //float range = Mathf.Clamp((target.position - transform.position).sqrMagnitude, -1, 1);
-            transform.position = target.position - (target.position - transform.position) * (0.8f - mouse3);
-        }
-            
-        if (mouse3 < 0)
-            transform.position = target.position - (target.position - transform.position) * (1.2f - mouse3);
+            if (mouse3 > 0 && (target.position - transform.position).sqrMagnitude > zoom_max_in)
+            {
+                transform.position = target.position - (target.position - transform.position) / zoomAmount;
+            }
 
-        cameraPosition = target.position - transform.position;
+            if (mouse3 < 0 && (target.position - transform.position).sqrMagnitude < zoom_max_out)
+            {
+                transform.position = target.position - (target.position - transform.position) * zoomAmount;
+            }
+        }
     }
 }
 
