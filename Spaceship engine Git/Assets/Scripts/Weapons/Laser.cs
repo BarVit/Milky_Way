@@ -4,20 +4,24 @@ using UnityEngine;
 
 public class Laser : MonoBehaviour
 {
-    public float speedRotation = 20;
     public GameObject shoot_point;
     public GameObject target;
-    public Quaternion q_target;
+    private Quaternion q_target;
     LineRenderer lr;
-    private float cd_timer, laser_cd = 5, laser_light_cd = 1.5f;
-    bool laserFire;
+    public float speedRotation = 20f;
+    private float cd_timer, laser_cd, laser_light_cd;
+    bool IsLaserFire;
+    private Color color;
 
     void Start()
     {
+        laser_cd = 7f;
+        laser_light_cd = 5f;
         lr = GetComponent<LineRenderer>();
         lr.positionCount = 2;
         cd_timer = laser_cd;
-        laserFire = false;
+        IsLaserFire = false;
+        color = Color.green;
     }
     private void FixedUpdate()
     {
@@ -32,22 +36,31 @@ public class Laser : MonoBehaviour
         if (cd_timer < 0)
         {
             lr.positionCount = 2;
-            laserFire = true;            
+            IsLaserFire = true;            
             cd_timer = laser_cd;
         }
-        if (laserFire)
+        if (IsLaserFire)
         {
             laser_light_cd -= Time.deltaTime;
             if (laser_light_cd > 0)
             {
                 lr.SetPosition(0, shoot_point.transform.position);
                 lr.SetPosition(1, transform.forward * 50);
+                lr.startColor = color;
+                lr.endColor = color;
+                if (laser_light_cd < 0.5f)
+                    color = Color.red;
+                else if (laser_light_cd < 2f)
+                    color = new Color(Mathf.Clamp(1 - (laser_light_cd - 0.5f) / 1.5f, 0, 1), Mathf.Clamp(0 + (laser_light_cd - 0.5f) / 1.5f, 0, 1), 0, 1);
+                else
+                    color = Color.green;
             }
             else
             {
                 lr.positionCount = 0;
-                laserFire = false;
-                laser_light_cd = 1.5f;
+                IsLaserFire = false;
+                laser_light_cd = 5f;
+                color = Color.green;
             }            
         }
     }

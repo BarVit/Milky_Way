@@ -354,12 +354,17 @@
 "Assets/Scripts/move.cs"
 "Assets/Scripts/Movement.cs"
 "Assets/Scripts/Orbit_render.cs"
-"Assets/Scripts/Some.cs"
+"Assets/Scripts/Spiral_From_Egor.cs"
+"Assets/Scripts/Weapons/AutoCannon.cs"
 "Assets/Scripts/Weapons/Bullet.cs"
 "Assets/Scripts/Weapons/Cannon.cs"
+"Assets/Scripts/Weapons/GaussGun.cs"
+"Assets/Scripts/Weapons/IonCannon.cs"
+"Assets/Scripts/Weapons/Ion_orb.cs"
 "Assets/Scripts/Weapons/Laser.cs"
-"Assets/Scripts/Weapons/Plasma.cs"
+"Assets/Scripts/Weapons/PlasmaGun.cs"
 "Assets/Scripts/Weapons/Plasma_orb.cs"
+"Assets/Scripts/Weapons/RailGun.cs"
 -langversion:9.0
 
 /deterministic

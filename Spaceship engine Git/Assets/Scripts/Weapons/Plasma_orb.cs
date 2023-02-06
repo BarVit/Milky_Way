@@ -4,8 +4,8 @@ using UnityEngine;
 
 public class Plasma_orb : MonoBehaviour
 {
-    private float speed = 10f;
     public GameObject target;
+    public float orb_speed;
 
     void Start()
     {
@@ -25,7 +25,7 @@ public class Plasma_orb : MonoBehaviour
     }
     void Update()
     {
-        transform.position = Vector3.MoveTowards(transform.position, target.transform.position, speed * Time.deltaTime);
+        transform.position = Vector3.MoveTowards(transform.position, target.transform.position, orb_speed * Time.deltaTime);
 
     }
 }
