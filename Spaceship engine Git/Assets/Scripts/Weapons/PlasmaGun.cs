@@ -7,7 +7,7 @@ public class PlasmaGun : MonoBehaviour
     public GameObject plasmaPref;
     private GameObject plasma_orb;
     public float orb_speed;
-    private float orb_periodic_damage = 10f;
+    private float orb_periodic_damage = 5f;
     public float plasma_cd;
     private float cd_timer;
     void Start()
