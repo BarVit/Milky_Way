@@ -2,8 +2,18 @@
 #
 # Get latest from https://github.com/github/gitignore/blob/master/Unity.gitignore
 #
+Space Engine Architecture Git/Library/
+
+Space Engine Architecture Git/Temp/
+Space Engine Architecture Git/Obj/
+Space Engine Architecture Git/Build/
+Space Engine Architecture Git/Builds/
+Space Engine Architecture Git/Logs/
+Space Engine Architecture Git/MemoryCaptures/
+
 Spaceship engine Git/Library/
 Spaceship engine Git/Library/Artifacts/
+Spaceship engine Git/Library/ArtifactDB
 Spaceship engine Git/[Ll]ibrary/
 Spaceship engine Git/[Tt]emp/
 Spaceship engine Git/[Oo]bj/
@@ -59,5 +69,3 @@ sysinfo.txt
 
 # Crashlytics generated file
 crashlytics-build.properties
-
-Spaceship engine Git/Library/ArtifactDB
