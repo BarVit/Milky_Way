@@ -2,13 +2,15 @@
 #
 # Get latest from https://github.com/github/gitignore/blob/master/Unity.gitignore
 #
-/[Ll]ibrary/
-/[Tt]emp/
-/[Oo]bj/
-/[Bb]uild/
-/[Bb]uilds/
-/[Ll]ogs/
-/[Mm]emoryCaptures/
+Spaceship engine Git/Library/
+Spaceship engine Git/Library/Artifacts/
+Spaceship engine Git/[Ll]ibrary/
+Spaceship engine Git/[Tt]emp/
+Spaceship engine Git/[Oo]bj/
+Spaceship engine Git/[Bb]uild/
+Spaceship engine Git/[Bb]uilds/
+Spaceship engine Git/[Ll]ogs/
+Spaceship engine Git/[Mm]emoryCaptures/
 
 # Asset meta data should only be ignored when the corresponding asset is also ignored
 !/[Aa]ssets/**/*.meta
@@ -58,3 +60,4 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 
+Spaceship engine Git/Library/ArtifactDB

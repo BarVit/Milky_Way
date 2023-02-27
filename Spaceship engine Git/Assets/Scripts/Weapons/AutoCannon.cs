@@ -4,11 +4,11 @@ using UnityEngine;
 
 public class AutoCannon : MonoBehaviour
 {
-
     public GameObject bulletPref;
     private GameObject bullet;
     public int bullets_in_clip;
     public float bullet_speed;
+    public float bullet_damage;
     public float bullet_cd;
     public float reload_cd;
     private float cd_timer;
@@ -17,6 +17,7 @@ public class AutoCannon : MonoBehaviour
     {
         bullets_in_clip = 20;
         bullet_speed = 120f;
+        bullet_damage = 2f;
         bullet_cd = 0.05f;
         reload_cd = 6f;
         cd_timer = reload_cd;
@@ -36,6 +37,7 @@ public class AutoCannon : MonoBehaviour
             if (i == transform.childCount)
                 i = 0;
             bullet.GetComponent<Bullet>().bullet_speed = bullet_speed;
+            bullet.GetComponent<Bullet>().bullet_damage = bullet_damage;
             Destroy(bullet, 2);
             bullets_in_clip--;
             yield return new WaitForSeconds(bullet_cd);

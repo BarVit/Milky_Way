@@ -13,13 +13,18 @@ public class Laser : MonoBehaviour
     bool IsLaserFire;
     private Color color;
 
+    private float laser_damage = 5f;
+
     void Start()
     {
+        
         laser_cd = 7f;
         laser_light_cd = 5f;
         lr = GetComponent<LineRenderer>();
         lr.positionCount = 2;
-        cd_timer = laser_cd;
+        //обычное кд 7 сек, ставлю 2 сек для более быстрых тестов
+        //cd_timer = laser_cd;
+        cd_timer = 2f;
         IsLaserFire = false;
         color = Color.green;
     }
@@ -48,6 +53,15 @@ public class Laser : MonoBehaviour
                 lr.SetPosition(1, transform.forward * 50);
                 lr.startColor = color;
                 lr.endColor = color;
+                Ray ray = new Ray(shoot_point.transform.position, transform.forward * 50);
+                RaycastHit hit;
+                if (Physics.Raycast(ray, out hit))
+                {
+                    if (hit.collider.gameObject.tag == "Enemy")
+                        hit.collider.gameObject.GetComponent<Enemy>().TakeDamage(laser_damage * Time.deltaTime);
+                }
+
+                // переделать на градиент
                 if (laser_light_cd < 0.5f)
                     color = Color.red;
                 else if (laser_light_cd < 2f)

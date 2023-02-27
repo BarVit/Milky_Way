@@ -14,6 +14,9 @@ public class GaussGun : MonoBehaviour
     bool IsRailFire;
     private Color color;
 
+    private float gauss_damage = 20f;
+    private bool one_shot = false;
+
     void Start()
     {
         rail_cd = 4f;
@@ -40,6 +43,7 @@ public class GaussGun : MonoBehaviour
         {
             lr.positionCount = 2;
             IsRailFire = true;
+            one_shot = true;
             cd_timer = rail_cd;
         }
         if (IsRailFire)
@@ -55,6 +59,20 @@ public class GaussGun : MonoBehaviour
                     lr.endWidth = 0.5f;
                     lr.startColor = Color.gray;
                     lr.endColor = Color.gray;
+                    if (one_shot)
+                    {
+                        Ray ray = new Ray(shoot_point.transform.position, transform.forward * 50);
+                        RaycastHit[] hits = Physics.RaycastAll(ray);
+                        if (hits.Length > 0)
+                        {
+                            foreach (RaycastHit hit in hits)
+                            {
+                                if (hit.collider.gameObject.tag == "Enemy")
+                                    hit.collider.gameObject.GetComponent<Enemy>().TakeDamage(gauss_damage);
+                            }
+                        }
+                    }
+                    one_shot = false;
                 }
                 else if (rail_charge_and_shoot_cd < 2.5f)
                 {

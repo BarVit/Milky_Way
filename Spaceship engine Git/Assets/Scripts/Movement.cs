@@ -22,15 +22,14 @@ public class Movement : MonoBehaviour
     private Quaternion q_ship;
     private Vector3 radius_vector;
 
-    [SerializeField] float target_speed;
+    //[SerializeField] float target_speed;
     [SerializeField] private float target_angle;
     [SerializeField] public string target_orient;
     [SerializeField] private string target_range;
-    private string target_side;
+    //private string target_side;
 
     private string moving_type;
     [SerializeField] float target_distance;
-    //private bool IsShoot = false;
 
     //заданная орбита
     public float orbit_range = 30f;
@@ -47,8 +46,8 @@ public class Movement : MonoBehaviour
 
     bool isBusy = false;
 
-    bool oddFrame = true;
     float distance1, distance2;
+
 
     void Start()
     {
@@ -66,7 +65,7 @@ public class Movement : MonoBehaviour
         Ship_start();
 
         distance1 = distance2 = (this.transform.position - target.transform.position).magnitude;
-        target_speed = 0;
+        //target_speed = 0;
     }
     private void FixedUpdate()
     {
@@ -77,8 +76,6 @@ public class Movement : MonoBehaviour
     {
         //Debug.Log("Start");
         //Горизонтальное покачивание в режиме покоя
-        //123
-
     }
 
     IEnumerator Ship_front_attack()
@@ -261,7 +258,7 @@ public class Movement : MonoBehaviour
                     }
                     if (target_orient == "forward")
                     {
-                        if (ship_speed > -5)
+                        if (ship_speed > 0.5 * ship_max_back_speed)
                         {
                             ship_speed -= 1f;
                         }
@@ -532,7 +529,7 @@ public class Movement : MonoBehaviour
                         }
                         else
                         {
-                            if (ship_speed > -5)
+                            if (ship_speed > 0.5f * ship_max_back_speed)
                             {
                                 ship_speed -= 1f;
                             }
@@ -1207,19 +1204,19 @@ public class Movement : MonoBehaviour
         //}
         if (moving_type == "front_attack")
         {
-            q_ship = Quaternion.LookRotation(this.transform.position - target.transform.position);
+            q_ship = Quaternion.LookRotation(transform.position - target.transform.position);
             q_ship *= Quaternion.Euler(0, 180, 0);
-            this.transform.rotation = Quaternion.RotateTowards(this.transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
-            this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
+            transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
         }
         else if (moving_type == "forward_attack")
         {
             if (target_range != "shortrange")
             {
-                q_ship = Quaternion.LookRotation(this.transform.position - target.transform.position);
+                q_ship = Quaternion.LookRotation(transform.position - target.transform.position);
                 q_ship *= Quaternion.Euler(0, 180, 0);
-                this.transform.rotation = Quaternion.RotateTowards(this.transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
-                this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
+                transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
             }
             else
             {
@@ -1236,16 +1233,16 @@ public class Movement : MonoBehaviour
             // 
             if ((target_distance > 1.7 * orbit_range) || (target_distance < 0.8f * orbit_range))
             {
-                q_ship = Quaternion.LookRotation(this.transform.position - target.transform.position);
+                q_ship = Quaternion.LookRotation(transform.position - target.transform.position);
                 q_ship *= Quaternion.Euler(0, 180, 0);
-                this.transform.rotation = Quaternion.RotateTowards(this.transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
+                this.transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
                 this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
             }
             else
             {
-                q_ship = Quaternion.LookRotation(this.transform.position - target.transform.position);
+                q_ship = Quaternion.LookRotation(transform.position - target.transform.position);
                 q_ship *= Quaternion.Euler(0, 180, 0);
-                this.transform.rotation = Quaternion.RotateTowards(this.transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
+                this.transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
                 this.transform.Translate(Vector3.left * ship_side_speed * Time.deltaTime);
                 this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
             }
@@ -1332,21 +1329,21 @@ public class Movement : MonoBehaviour
             moving_type = "standby";
     }
 
-    void Target_speed()
-    {
-        if (oddFrame)
-        {
-            distance1 = target_distance;
-            oddFrame = false;
-        }
-        else
-        {
-            distance2 = target_distance;
-            oddFrame = true;
-            if (distance1 != distance2)
-                target_speed = (distance2 - distance1) / Time.deltaTime;
-        }
-    }
+    //void Target_speed()
+    //{
+    //    if (oddFrame)
+    //    {
+    //        distance1 = target_distance;
+    //        oddFrame = false;
+    //    }
+    //    else
+    //    {
+    //        distance2 = target_distance;
+    //        oddFrame = true;
+    //        if (distance1 != distance2)
+    //            target_speed = (distance2 - distance1) / Time.deltaTime;
+    //    }
+    //}
     void Where_target()
     {
         target_angle = Vector3.Angle(radius_vector, this.transform.forward);
@@ -1356,10 +1353,10 @@ public class Movement : MonoBehaviour
             target_orient = "back";
         else
             target_orient = "side";
-        if (Vector3.Angle(radius_vector, this.transform.right) > 90f)
-            target_side = "left";
-        else
-            target_side = "right";
+        //if (Vector3.Angle(radius_vector, this.transform.right) > 90f)
+        //    target_side = "left";
+        //else
+        //    target_side = "right";
 
         if (target_distance <= short_range)
             target_range = "shortrange";

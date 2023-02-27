@@ -11,7 +11,7 @@ public class move : MonoBehaviour
     public float maxTurnSpeed;
     public float circleRadius;
     private float circleSpeed;
-    private float circleTurnSpeed;
+    //private float circleTurnSpeed;
     private string orientation;
     [SerializeField] private float pointAngle;
 
@@ -27,7 +27,7 @@ public class move : MonoBehaviour
         //константы дл€ теста, соответствуют радиусу 29.3615
         circleRadius = 29.3615f;
         circleSpeed = 21;
-        circleTurnSpeed = 41;
+        //circleTurnSpeed = 41;
     }
     void Where_point()
     {
@@ -59,8 +59,6 @@ public class move : MonoBehaviour
             }
             if (orientation == "side")
             {
-                
-                float target_distance = (transform.position - centerPoint.transform.position).magnitude;
                 //≈сли стоим боком к цели, то раскручиваемс€ по спирали
                 if (pointAngle > 85 && pointAngle < 100)
                 {
@@ -95,8 +93,8 @@ public class move : MonoBehaviour
         {
             StartCoroutine(Go_Circle());
         }
-        q = Quaternion.LookRotation(transform.position - NextPosition());
-        q *= Quaternion.Euler(0, 180, 0);
+        q = Quaternion.LookRotation(NextPosition() - transform.position);
+        //q *= Quaternion.Euler(0, 180, 0);
         transform.rotation = Quaternion.RotateTowards(transform.rotation, q, Time.deltaTime * turnSpeed);
         transform.Translate(Vector3.forward * speed * Time.deltaTime);
     }
