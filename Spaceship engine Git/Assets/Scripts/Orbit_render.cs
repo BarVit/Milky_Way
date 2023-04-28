@@ -7,12 +7,6 @@ public class Orbit_render : MonoBehaviour
     public LineRenderer circleRenderer;
     public Transform trParent;
 
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
     private void Update()
     {
         DrawCircle(100, 30);

@@ -4,15 +4,17 @@ using UnityEngine;
 
 public class Bullet : MonoBehaviour
 {
-    public float bullet_speed;
-    public float bullet_damage;
-    private void Awake()
-    {
-        
-    }
+    private float bullet_speed;
+    private float bullet_damage;
+
     void Update()
     {
-        this.transform.Translate(Vector3.forward * Time.deltaTime * bullet_speed);
+        transform.Translate(Vector3.forward * Time.deltaTime * bullet_speed);
+    }
+    public void SetBulletStats (float speed, float damage)
+    {
+        bullet_speed = speed;
+        bullet_damage = damage;
     }
     private void OnCollisionEnter(Collision collision)
     {

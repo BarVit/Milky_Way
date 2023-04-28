@@ -4,80 +4,130 @@ using UnityEngine;
 
 public class Movement : MonoBehaviour
 {
-    public GameObject target;
-    public GameObject orbitPoint;
+    public GameObject spaceBase;
+    private GameObject[] enemies;
+    private List<GameObject> targets = new List<GameObject>();
+    private GameObject target;
+
+    public AnimationCurve turn_curve;
+    public AnimationCurve acceleration_curve;
+
+    [Header("Ship movement stats")]
+    public float ship_acceleration;
+    public float ship_breaking;
     public float ship_speed;
-    public float ship_real_speed;
-    float ship_max_back_speed;
-    [SerializeField] float ship_side_speed;
-    float ship_max_side_speed;
+    public float ship_side_speed;
+    public float ship_turn_speed;
+
+    public float ship_max_acceleration;
+    public float ship_max_breaking;
+    public float ship_max_speed;
+    public float ship_max_side_speed;
+    public float ship_max_turn_speed;
+    public float ship_max_back_speed;
 
     [SerializeField] float ship_calc_speed;
     [SerializeField] float ship_calc_turn_speed;
-    public float ship_turn_speed;
+
     [SerializeField] int ship_turn_side;
-    public float ship_max_speed;
-    public float ship_max_turn_speed;
+
 
     private Quaternion q_ship;
     private Vector3 radius_vector;
 
-    //[SerializeField] float target_speed;
+    [Header("Angles")]
     [SerializeField] private float target_angle;
-    [SerializeField] public string target_orient;
-    [SerializeField] private string target_range;
-    //private string target_side;
+    private enum Target_range
+    {
+        shortrange,
+        middlerange,
+        longrange
+    }
+    private enum Target_orient
+    {
+        forward,
+        back,
+        side
+    }
+    private Target_orient target_orient;
+    private Target_range target_range;
 
-    private string moving_type;
+    public enum Moving_type 
+    {
+        front_attack,
+        forward_attack,
+        ace_attack,
+        orbit,
+        side_orbit,
+        standby,
+        test,
+        move_to_point
+    }
+    public Moving_type moving_type;
     [SerializeField] float target_distance;
 
     //заданная орбита
     public float orbit_range = 30f;
-    //расчетная орбита
-    [SerializeField] float orbit_radius;
 
-    //private float shoot_range = 35f;
-    //private bool InWeaponRange = false;
     private float long_range = 250f;
     private float short_range = 30f;
     private float ship_break_distance;
 
     private float fi;
 
-    bool isBusy = false;
-
-    float distance1, distance2;
+    private bool isBusy = false;
 
 
     void Start()
     {
-        Where_target();
         ship_speed = 0;
+        ship_acceleration = 1f;
+        ship_breaking = 1f;
+        ship_max_breaking = 2f;
+        ship_max_acceleration = 2f;
         ship_max_speed = 50f;
         ship_max_back_speed = -10f;
         ship_max_turn_speed = 50f;
         ship_turn_speed = 30f;
         ship_side_speed = 0;
         ship_max_side_speed = 0.2f * ship_max_speed;
+        moving_type = Moving_type.standby;
 
-        //target_speed = target.GetComponent<enemy_move>().speed;
-        //target_speed = target.GetComponent<enemy_move>().side_speed;
         Ship_start();
-
-        distance1 = distance2 = (this.transform.position - target.transform.position).magnitude;
-        //target_speed = 0;
-    }
-    private void FixedUpdate()
-    {
-        //Debug.DrawRay(this.transform.position, this.transform.forward * 200);
-        //Debug.DrawRay(this.transform.position, (target.transform.position - this.transform.position) * 50);
     }
     private void Ship_start()
     {
-        //Debug.Log("Start");
+        Debug.Log("Start");
+        moving_type = Moving_type.standby;
         //Горизонтальное покачивание в режиме покоя
     }
 
+    IEnumerator Move_to_point()
+    {
+        Debug.Log("Move to point" + target.name);
+        while (true)
+        {
+            if (target_orient == Target_orient.back)
+                Change_speed(5, 3);
+            if (target_orient == Target_orient.forward)
+            {
+                if (target_distance > ship_max_speed * ship_max_speed / 10 * ship_acceleration)
+                    Change_speed(50, 3);
+                else if (target_distance < Break_distance() + 15)
+                    Change_speed(5, ship_acceleration);
+                else if (target_distance < 5)
+                    Change_speed(2);
+                else if (target_distance < 1)
+                    Change_speed(0);
+                else
+                    Change_speed(50);
+            }
+                
+            if (target_orient == Target_orient.side)
+                Change_speed(10);
+            yield return new WaitForSeconds(0.1f);
+        }
+    }
     IEnumerator Ship_front_attack()
     {
         Debug.Log("Front attack");
@@ -85,8 +135,8 @@ public class Movement : MonoBehaviour
         {
             switch (target_range)
             {
-                case "longrange":
-                    if (target_orient == "back")
+                case Target_range.longrange:
+                    if (target_orient == Target_orient.back)
                     {
                         if (ship_speed > 10)
                         {
@@ -101,7 +151,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed += 2f;
                         }
                     }
-                    if (target_orient == "forward")
+                    if (target_orient == Target_orient.forward)
                     {
                         if (ship_speed < 50)
                         {
@@ -116,7 +166,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed -= 1f;
                         }
                     }
-                    if (target_orient == "side")
+                    if (target_orient == Target_orient.side)
                     {
                         if (ship_speed > 10)
                         {
@@ -132,8 +182,8 @@ public class Movement : MonoBehaviour
                         }
                     }
                     break;
-                case "middlerange":
-                    if (target_orient == "back")
+                case Target_range.middlerange:
+                    if (target_orient == Target_orient.back)
                     {
                         if (ship_speed > 10)
                         {
@@ -148,7 +198,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed += 2f;
                         }
                     }
-                    if (target_orient == "forward")
+                    if (target_orient == Target_orient.forward)
                     {
                         ship_break_distance = ship_speed * ship_speed / (10 * 2);
                         if (target_distance < orbit_range * 1.03f)
@@ -224,7 +274,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed -= 1f;
                         }
                     }
-                    if (target_orient == "side")
+                    if (target_orient == Target_orient.side)
                     {
                         if (ship_speed > 10)
                         {
@@ -240,8 +290,8 @@ public class Movement : MonoBehaviour
                         }
                     }
                     break;
-                case "shortrange":
-                    if (target_orient == "back")
+                case Target_range.shortrange:
+                    if (target_orient == Target_orient.back)
                     {
                         if (ship_speed > 5)
                         {
@@ -256,7 +306,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed += 2f;
                         }
                     }
-                    if (target_orient == "forward")
+                    if (target_orient == Target_orient.forward)
                     {
                         if (ship_speed > 0.5 * ship_max_back_speed)
                         {
@@ -271,7 +321,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed += 2f;
                         }
                     }
-                    if (target_orient == "side")
+                    if (target_orient == Target_orient.side)
                     {
                         if (ship_speed > 0)
                         {
@@ -298,8 +348,8 @@ public class Movement : MonoBehaviour
         {
             switch (target_range)
             {
-                case "longrange":
-                    if (target_orient == "back")
+                case Target_range.longrange:
+                    if (target_orient == Target_orient.back)
                     {
                         if (ship_speed > 10)
                         {
@@ -314,7 +364,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed += 2f;
                         }
                     }
-                    if (target_orient == "forward")
+                    if (target_orient == Target_orient.forward)
                     {
                         if (ship_speed < 50)
                         {
@@ -329,7 +379,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed -= 1f;
                         }
                     }
-                    if (target_orient == "side")
+                    if (target_orient == Target_orient.side)
                     {
                         if (ship_speed > 10)
                         {
@@ -345,8 +395,8 @@ public class Movement : MonoBehaviour
                         }
                     }
                     break;
-                case "middlerange":
-                    if (target_orient == "back")
+                case Target_range.middlerange:
+                    if (target_orient == Target_orient.back)
                     {
                         if (ship_speed < 50)
                         {
@@ -361,7 +411,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed -= 1f;
                         }
                     }
-                    if (target_orient == "forward")
+                    if (target_orient == Target_orient.forward)
                     {
                         if (target_distance > 3 * orbit_range)
                         {
@@ -390,7 +440,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed -= 1f;
                         }
                     }
-                    if (target_orient == "side")
+                    if (target_orient == Target_orient.side)
                     {
                         if (ship_speed < 50)
                         {
@@ -406,8 +456,8 @@ public class Movement : MonoBehaviour
                         }
                     }
                     break;
-                case "shortrange":
-                    if (target_orient == "back")
+                case Target_range.shortrange:
+                    if (target_orient == Target_orient.back)
                     {
                         if (ship_speed < 30)
                         {
@@ -422,7 +472,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed -= 2f;
                         }
                     }
-                    if (target_orient == "forward")
+                    if (target_orient == Target_orient.forward)
                     {
                         if (ship_speed > 20)
                         {
@@ -437,7 +487,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed += 5f;
                         }
                     }
-                    if (target_orient == "side")
+                    if (target_orient == Target_orient.side)
                     {
                         if (ship_speed < 30)
                         {
@@ -465,9 +515,9 @@ public class Movement : MonoBehaviour
             yield return new WaitForSeconds(0.1f);
             switch (target_range)
             {
-                case "longrange":
+                case Target_range.longrange:
                     ship_side_speed = 0;
-                    if (target_orient == "back")
+                    if (target_orient == Target_orient.back)
                     {
                         if (ship_speed > 10)
                         {
@@ -478,7 +528,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed += 1f;
                         }
                     }
-                    if (target_orient == "forward")
+                    if (target_orient == Target_orient.forward)
                     {
                         if (ship_speed < 50)
                         {
@@ -489,7 +539,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed -= 1f;
                         }
                     }
-                    if (target_orient == "side")
+                    if (target_orient == Target_orient.side)
                     {
                         if (ship_speed > 10)
                         {
@@ -501,8 +551,8 @@ public class Movement : MonoBehaviour
                         }
                     }
                     break;
-                case "shortrange":
-                    if (target_orient == "back")
+                case Target_range.shortrange:
+                    if (target_orient == Target_orient.back)
                     {
                         ship_side_speed = 0;
                         if (ship_speed > 3)
@@ -514,7 +564,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed += 2f;
                         }
                     }
-                    if (target_orient == "forward")
+                    if (target_orient == Target_orient.forward)
                     {
                         if (target_distance > 0.9 * orbit_range)
                         {
@@ -551,7 +601,7 @@ public class Movement : MonoBehaviour
                             ship_side_speed += 0.05f * ship_max_side_speed;
                         }
                     }
-                    if (target_orient == "side")
+                    if (target_orient == Target_orient.side)
                     {
                         if (ship_speed > 0)
                         {
@@ -567,10 +617,10 @@ public class Movement : MonoBehaviour
                         }
                     }
                     break;
-                case "middlerange":
+                case Target_range.middlerange:
                     //10 это коэффициент при котором время равно 1 сек
                     ship_break_distance = ship_speed * ship_speed / (10 * 2);
-                    if (target_orient == "back")
+                    if (target_orient == Target_orient.back)
                     {
                         //сделать потом плавное боковое замедление
                         ship_side_speed = 0;
@@ -587,7 +637,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed += 2f;
                         }
                     }
-                    if (target_orient == "forward")
+                    if (target_orient == Target_orient.forward)
                     {
                         if (target_distance < orbit_range * 1.03f)
                         {
@@ -690,7 +740,7 @@ public class Movement : MonoBehaviour
                             }
                         }
                     }
-                    if (target_orient == "side")
+                    if (target_orient == Target_orient.side)
                     {
                         //сделать потом плавное боковое замедление
                         ship_side_speed = 0;
@@ -746,22 +796,22 @@ public class Movement : MonoBehaviour
             yield return new WaitForSeconds(0.1f);
             switch (target_range)
             {
-                case "longrange":
-                    if (target_orient == "back")
+                case Target_range.longrange:
+                    if (target_orient == Target_orient.back)
                     {
                         if (ship_speed > 10)
                             ship_speed -= 2f;
                         if (ship_turn_speed < 30)
                             ship_turn_speed += 1f;
                     }
-                    if (target_orient == "forward")
+                    if (target_orient == Target_orient.forward)
                     {
                         if (ship_speed < 50)
                             ship_speed += 2f;
                         if (ship_turn_speed > 5)
                             ship_turn_speed -= 1f;
                     }
-                    if (target_orient == "side")
+                    if (target_orient == Target_orient.side)
                     {
                         if (ship_speed > 10)
                             ship_speed -= 1f;
@@ -769,10 +819,10 @@ public class Movement : MonoBehaviour
                             ship_turn_speed += 2f;
                     }
                     break;
-                case "middlerange":
+                case Target_range.middlerange:
                     ship_break_distance = ship_speed * ship_speed / (10 * 2);
 
-                    if (target_orient == "back")
+                    if (target_orient == Target_orient.back)
                     {
                         if (ship_speed > 10)
                             ship_speed -= 2f;
@@ -783,7 +833,7 @@ public class Movement : MonoBehaviour
                         else
                             ship_turn_speed -= 1f;
                     }
-                    if (target_orient == "forward")
+                    if (target_orient == Target_orient.forward)
                     {
                         if (target_distance < ship_break_distance + orbit_range * 1.1f)
                         {
@@ -830,7 +880,7 @@ public class Movement : MonoBehaviour
                                 ship_turn_speed -= 1f;
                         }
                     }
-                    if (target_orient == "side")
+                    if (target_orient == Target_orient.side)
                     {
                         if (target_distance > 5 * orbit_range)
                         {
@@ -878,10 +928,10 @@ public class Movement : MonoBehaviour
                         }
                     }
                     break;
-                case "shortrange":
+                case Target_range.shortrange:
                     //выход на орбиту изнутри по спирали
 
-                    if (target_orient == "forward" || target_orient == "back")
+                    if (target_orient == Target_orient.forward || target_orient == Target_orient.back)
                     {
                         //если цель впереди или сзади, то замедляемся и поворачиваемся боком
                         if (ship_speed > 5)
@@ -893,7 +943,7 @@ public class Movement : MonoBehaviour
                         else
                             ship_turn_speed -= 1;
                     }
-                    if (target_orient == "side")
+                    if (target_orient == Target_orient.side)
                     {
                         if (target_angle > 85 && target_angle < 100)
                         {
@@ -930,8 +980,8 @@ public class Movement : MonoBehaviour
         {
             switch (target_range)
             {
-                case "longrange":
-                    if (target_orient == "back")
+                case Target_range.longrange:
+                    if (target_orient == Target_orient.back)
                     {
                         if (ship_speed > 10)
                         {
@@ -946,7 +996,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed += 2f;
                         }
                     }
-                    if (target_orient == "forward")
+                    if (target_orient == Target_orient.forward)
                     {
                         if (ship_speed < 50)
                         {
@@ -961,7 +1011,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed -= 1f;
                         }
                     }
-                    if (target_orient == "side")
+                    if (target_orient == Target_orient.side)
                     {
                         if (ship_speed > 10)
                         {
@@ -977,8 +1027,8 @@ public class Movement : MonoBehaviour
                         }
                     }
                     break;
-                case "middlerange":
-                    if (target_orient == "back")
+                case Target_range.middlerange:
+                    if (target_orient == Target_orient.back)
                     {
                         if (ship_speed < 30)
                         {
@@ -1003,7 +1053,7 @@ public class Movement : MonoBehaviour
                             }
                         }
                     }
-                    if (target_orient == "forward")
+                    if (target_orient == Target_orient.forward)
                     {
                         if (target_distance > 2 * orbit_range)
                         {
@@ -1032,7 +1082,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed += 2f;
                         }
                     }
-                    if (target_orient == "side")
+                    if (target_orient == Target_orient.side)
                     {
                         if (ship_speed > 20)
                         {
@@ -1058,8 +1108,8 @@ public class Movement : MonoBehaviour
                         }
                     }
                     break;
-                case "shortrange":
-                    if (target_orient == "back")
+                case Target_range.shortrange:
+                    if (target_orient == Target_orient.back)
                     {
                         if (ship_speed < 30)
                         {
@@ -1074,7 +1124,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed -= 5f;
                         }
                     }
-                    if (target_orient == "forward")
+                    if (target_orient == Target_orient.forward)
                     {
                         if (ship_speed > 30)
                         {
@@ -1093,7 +1143,7 @@ public class Movement : MonoBehaviour
                             ship_turn_speed -= 2f;
                         }
                     }
-                    if (target_orient == "side")
+                    if (target_orient == Target_orient.side)
                     {
                         if (ship_speed < 30)
                         {
@@ -1120,250 +1170,263 @@ public class Movement : MonoBehaviour
     IEnumerator Test()
     {
         Debug.Log("Test");
-        yield return new WaitForSeconds(1f);
+        while (true)
+        {
+            switch (target_range)
+            {
+                case Target_range.longrange:
+                    if (target_orient == Target_orient.back || target_orient == Target_orient.side)
+                        Change_speed(10f);
+                    if (target_orient == Target_orient.forward)
+                        Change_speed(50f);
+                    break;
+                case Target_range.middlerange:
+                    if (target_orient == Target_orient.back)
+                        Change_speed(10f);
+                    if (target_orient == Target_orient.forward)
+                    {
+                        //ship_break_distance = ship_speed * ship_speed / (10 * 2);
+                        ship_break_distance = Break_distance();
+                        if (target_distance < orbit_range * 1.03f)
+                            Change_speed(0f, 0.5f);
+                        else if (target_distance < ship_break_distance + orbit_range * 1.1f || target_distance < orbit_range * 1.1f)
+                            Change_speed(5f);
+                        else if (target_distance < 3 * orbit_range)
+                            Change_speed(30f);
+                        else if (target_distance > 3 * orbit_range)
+                            Change_speed(50f);
+                    }
+                    if (target_orient == Target_orient.side)
+                        Change_speed(10f);
+                    break;
+                case Target_range.shortrange:
+                    if (target_orient == Target_orient.back)
+                        Change_speed(5f);
+                    if (target_orient == Target_orient.forward)
+                        Change_speed(0.5f * ship_max_back_speed);
+                    if (target_orient == Target_orient.side)
+                        Change_speed(0f);
+                    break;
+            }
+            yield return new WaitForSeconds(0.1f);
+        }
     }
     IEnumerator Ship_standby()
     {
         Debug.Log("Standby");
         yield return new WaitForSeconds(1f);
     }
-    void Update()
+    private void FixedUpdate()
     {
-        if (Input.GetKeyDown(KeyCode.F1))
-            Time.timeScale = 1f;
-        if (Input.GetKeyDown(KeyCode.F2))
-            Time.timeScale = 0.25f;
-        if (Input.GetKeyDown(KeyCode.F3))
-            Time.timeScale = 0.1f;
-        if (Input.GetKeyDown(KeyCode.F4))
-            Time.timeScale = 2f;
+        //Debug.DrawRay(this.transform.position, this.transform.forward * 200);
+        //Debug.DrawRay(this.transform.position, (target.transform.position - this.transform.position) * 50);
 
-        target_distance = (target.transform.position - transform.position).magnitude;
-        orbit_radius = ship_speed / (ship_turn_speed * Mathf.PI / 180);
-        radius_vector = target.transform.position - transform.position;
-        Where_target();
-        //Target_speed();
+        ship_turn_speed = ship_max_turn_speed * turn_curve.Evaluate(ship_speed / ship_max_speed);
+        ship_acceleration = acceleration_curve.Evaluate(ship_speed / ship_max_speed);
+        ship_breaking = acceleration_curve.Evaluate((ship_max_speed - ship_speed) / ship_max_speed);
+    }
 
-        //Подлететь и атаковать
-        if (Input.GetKeyDown(KeyCode.Alpha1))
+    public void MovingType(char movingType)
+    {
+        StopAllCoroutines();
+        switch (movingType)
         {
-            StopAllCoroutines();
-            moving_type = "front_attack";
-            StartCoroutine(Ship_front_attack());
+            case '1':
+                moving_type = Moving_type.front_attack;
+                StartCoroutine(Ship_front_attack());
+                break;
+            case '2':
+                moving_type = Moving_type.forward_attack;
+                StartCoroutine(Ship_forward_attack());
+                break;
+            case '3':
+                moving_type = Moving_type.side_orbit;
+                StartCoroutine(Ship_side_orbit());
+                break;
+            case '4':
+                moving_type = Moving_type.orbit;
+                StartCoroutine(Ship_orbit());
+                break;
+            case '5':
+                moving_type = Moving_type.ace_attack;
+                StartCoroutine(Ace_attack());
+                break;
+            case '0':
+                moving_type = Moving_type.test;
+                StartCoroutine(Test());
+                break;
+            case 's':
+                moving_type = Moving_type.standby;
+                StartCoroutine(Ship_standby());
+                break;
+            case 'b':
+                moving_type = Moving_type.move_to_point;
+                StartCoroutine(Move_to_point());
+                break;
         }
-        //Прямая атака с уходом
-        if (Input.GetKeyDown(KeyCode.Alpha2))
+    }
+    public void SetTarget(GameObject target)
+    {
+        this.target = target;
+    }
+    private void Update()
+    {
+        if (target != null)
         {
-            StopAllCoroutines();
-            moving_type = "forward_attack";
-            StartCoroutine(Ship_forward_attack());
-        }
-        //Боковая орбита
-        if (Input.GetKeyDown(KeyCode.Alpha3))
-        {
-            StopAllCoroutines();
-            moving_type = "side_orbit";
-            StartCoroutine(Ship_side_orbit());
-        }
-        //Круговая орбита
-        if (Input.GetKeyDown(KeyCode.Alpha4))
-        {
-            StopAllCoroutines();
-            moving_type = "orbit";
-            StartCoroutine(Ship_orbit());
-        }
-        //Маневровая атака аса
-        if (Input.GetKeyDown(KeyCode.Alpha5))
-        {
-            StopAllCoroutines();
-            moving_type = "ace_attack";
-            StartCoroutine(Ace_attack());
-        }
-        if (Input.GetKeyDown(KeyCode.Alpha0))
-        {
-            StopAllCoroutines();
-            moving_type = "test";
-            StartCoroutine(Test());
-        }
-        //Состояние standby
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            StopAllCoroutines();
-            moving_type = "standby";
-            StartCoroutine(Ship_standby());
-        }
+            target_distance = (target.transform.position - transform.position).magnitude;
+            radius_vector = target.transform.position - transform.position;
+            Where_target();
 
-        //ship_real_speed = ship_speed + target_speed;
-        //if (ship_real_speed > ship_max_speed)
-        //{
-        //    ship_real_speed = ship_max_speed;
-        //}
-        //else if (ship_real_speed < ship_max_back_speed)
-        //{
-        //    ship_real_speed = ship_max_back_speed;
-        //}
-        if (moving_type == "front_attack")
-        {
-            q_ship = Quaternion.LookRotation(transform.position - target.transform.position);
-            q_ship *= Quaternion.Euler(0, 180, 0);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
-            transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
-        }
-        else if (moving_type == "forward_attack")
-        {
-            if (target_range != "shortrange")
+            if (moving_type == Moving_type.front_attack)
             {
                 q_ship = Quaternion.LookRotation(transform.position - target.transform.position);
                 q_ship *= Quaternion.Euler(0, 180, 0);
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
                 transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
             }
-            else
+            else if (moving_type == Moving_type.forward_attack)
             {
-                if (!isBusy)
+                if (target_range != Target_range.shortrange)
                 {
-                    StartCoroutine(Ship_turn_side());
-                }
-                this.transform.Rotate(new Vector3(0, ship_turn_side * ship_turn_speed, 0) * Time.deltaTime);
-                this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
-            }
-        }
-        else if (moving_type == "side_orbit")
-        {
-            // 
-            if ((target_distance > 1.7 * orbit_range) || (target_distance < 0.8f * orbit_range))
-            {
-                q_ship = Quaternion.LookRotation(transform.position - target.transform.position);
-                q_ship *= Quaternion.Euler(0, 180, 0);
-                this.transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
-                this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
-            }
-            else
-            {
-                q_ship = Quaternion.LookRotation(transform.position - target.transform.position);
-                q_ship *= Quaternion.Euler(0, 180, 0);
-                this.transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
-                this.transform.Translate(Vector3.left * ship_side_speed * Time.deltaTime);
-                this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
-            }
-        }
-        else if (moving_type == "orbit")
-        {
-            if (target_range == "shortrange" && target_distance < 0.6f * orbit_range)
-            {
-                //разворот корабля боком к цели на малой дистанции для выхода на орбиту изнутри
-                q_ship = Quaternion.LookRotation(this.transform.position - target.transform.position);
-                q_ship *= Quaternion.Euler(0, 90, 0);
-                this.transform.rotation = Quaternion.RotateTowards(this.transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
-                this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
-            }
-            else if (target_range == "shortrange" && target_distance > 0.6f * orbit_range)
-            {
-                //раскручиваемся по спирали
-                q_ship = Quaternion.LookRotation(transform.position - NextPosition());
-                q_ship *= Quaternion.Euler(0, 180, 0);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
-                transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
-                
-            }
-            else if (target_distance < 5 * orbit_range)
-            {
-                //движение на орбиту в точку касания. Вместо цели, направление на касательную
-                Vector3 orbit_point = new Vector3(0f, 0f, 0f);
-                float a = orbit_range;
-                float b;
-                float c = (target.transform.position - this.transform.position).magnitude;
-                b = Mathf.Sqrt(c * c - a * a);
-                orbit_point.y = 0;
-
-                if (target.transform.position.x >= this.transform.position.x)
-                {
-                    fi = Mathf.PI / 2 - Mathf.Asin(b / c) - Mathf.Asin((this.transform.position.z - target.transform.position.z) / c);
-                    orbit_point.x = target.transform.position.x - a * Mathf.Sin(fi);
-                    orbit_point.z = target.transform.position.z + a * Mathf.Cos(fi);
+                    q_ship = Quaternion.LookRotation(transform.position - target.transform.position);
+                    q_ship *= Quaternion.Euler(0, 180, 0);
+                    transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
+                    transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
                 }
                 else
                 {
-                    fi = Mathf.PI / 2 - Mathf.Asin(b / c) - Mathf.Asin((-this.transform.position.z + target.transform.position.z) / c);
-                    orbit_point.x = target.transform.position.x + a * Mathf.Sin(fi);
-                    orbit_point.z = target.transform.position.z - a * Mathf.Cos(fi);
+                    if (!isBusy)
+                    {
+                        StartCoroutine(Ship_turn_side());
+                    }
+                    this.transform.Rotate(new Vector3(0, ship_turn_side * ship_turn_speed, 0) * Time.deltaTime);
+                    this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
                 }
+            }
+            else if (moving_type == Moving_type.side_orbit)
+            {
+                // 
+                if ((target_distance > 1.7 * orbit_range) || (target_distance < 0.8f * orbit_range))
+                {
+                    q_ship = Quaternion.LookRotation(transform.position - target.transform.position);
+                    q_ship *= Quaternion.Euler(0, 180, 0);
+                    this.transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
+                    this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
+                }
+                else
+                {
+                    q_ship = Quaternion.LookRotation(transform.position - target.transform.position);
+                    q_ship *= Quaternion.Euler(0, 180, 0);
+                    this.transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
+                    this.transform.Translate(Vector3.left * ship_side_speed * Time.deltaTime);
+                    this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
+                }
+            }
+            else if (moving_type == Moving_type.orbit)
+            {
+                if (target_range == Target_range.shortrange && target_distance < 0.6f * orbit_range)
+                {
+                    //разворот корабля боком к цели на малой дистанции для выхода на орбиту изнутри
+                    q_ship = Quaternion.LookRotation(transform.position - target.transform.position);
+                    q_ship *= Quaternion.Euler(0, 90, 0);
+                    this.transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
+                    this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
+                }
+                else if (target_range == Target_range.shortrange && target_distance > 0.6f * orbit_range)
+                {
+                    //раскручиваемся по спирали
+                    q_ship = Quaternion.LookRotation(transform.position - NextPosition());
+                    q_ship *= Quaternion.Euler(0, 180, 0);
+                    transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
+                    transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
 
-                q_ship = Quaternion.LookRotation(this.transform.position - orbit_point);
+                }
+                else if (target_distance < 5 * orbit_range)
+                {
+                    //движение на орбиту в точку касания. Вместо цели, направление на касательную
+                    Vector3 orbit_point = new Vector3(0f, 0f, 0f);
+                    float a = orbit_range;
+                    float b;
+                    float c = (target.transform.position - transform.position).magnitude;
+                    b = Mathf.Sqrt(c * c - a * a);
+                    orbit_point.y = 0;
+
+                    if (target.transform.position.x >= transform.position.x)
+                    {
+                        fi = Mathf.PI / 2 - Mathf.Asin(b / c) - Mathf.Asin((transform.position.z - target.transform.position.z) / c);
+                        orbit_point.x = target.transform.position.x - a * Mathf.Sin(fi);
+                        orbit_point.z = target.transform.position.z + a * Mathf.Cos(fi);
+                    }
+                    else
+                    {
+                        fi = Mathf.PI / 2 - Mathf.Asin(b / c) - Mathf.Asin((-transform.position.z + target.transform.position.z) / c);
+                        orbit_point.x = target.transform.position.x + a * Mathf.Sin(fi);
+                        orbit_point.z = target.transform.position.z - a * Mathf.Cos(fi);
+                    }
+
+                    q_ship = Quaternion.LookRotation(transform.position - orbit_point);
+                    q_ship *= Quaternion.Euler(0, 180, 0);
+                    transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
+                    transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
+                }
+                else
+                //на большом расстоянии прямое движение на цель
+                {
+                    q_ship = Quaternion.LookRotation(transform.position - target.transform.position);
+                    q_ship *= Quaternion.Euler(0, 180, 0);
+                    transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
+                    transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
+                }
+            }
+            else if (moving_type == Moving_type.ace_attack)
+            {
+                if (target_range == Target_range.shortrange && target_distance < 0.5 * orbit_range)
+                {
+                    this.transform.Rotate(new Vector3(0, -ship_turn_speed, 0) * Time.deltaTime);
+                    this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
+                }
+                else
+                {
+                    q_ship = Quaternion.LookRotation(this.transform.position - target.transform.position);
+                    q_ship *= Quaternion.Euler(0, 180, 0);
+                    this.transform.rotation = Quaternion.RotateTowards(this.transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
+                    this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
+                }
+            }
+            else if (moving_type == Moving_type.test)
+            {
+                q_ship = Quaternion.LookRotation(target.transform.position - transform.position);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
+                transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
+            }
+            else if (moving_type == Moving_type.move_to_point)
+            {
+                q_ship = Quaternion.LookRotation(transform.position - target.transform.position);
                 q_ship *= Quaternion.Euler(0, 180, 0);
-                this.transform.rotation = Quaternion.RotateTowards(this.transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
-                this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
+                transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
             }
             else
-            //на большом расстоянии прямое движение на цель
-            {
-                q_ship = Quaternion.LookRotation(this.transform.position - target.transform.position);
-                q_ship *= Quaternion.Euler(0, 180, 0);
-                this.transform.rotation = Quaternion.RotateTowards(this.transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
-                this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
-            }
+                moving_type = Moving_type.standby;
         }
-        else if (moving_type == "ace_attack")
-        {
-            if (target_range == "shortrange" && target_distance < 0.5 * orbit_range)
-            {
-                this.transform.Rotate(new Vector3(0, -ship_turn_speed, 0) * Time.deltaTime);
-                this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
-            }
-            else
-            {
-                q_ship = Quaternion.LookRotation(this.transform.position - target.transform.position);
-                q_ship *= Quaternion.Euler(0, 180, 0);
-                this.transform.rotation = Quaternion.RotateTowards(this.transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
-                this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
-            }
-        }
-        else if (moving_type == "test")
-        {
-            q_ship = Quaternion.LookRotation(this.transform.position - target.transform.position);
-            q_ship *= Quaternion.Euler(0, 90, 0);
-            this.transform.rotation = Quaternion.RotateTowards(this.transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
-            this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
-        }
-        else
-            moving_type = "standby";
     }
 
-    //void Target_speed()
-    //{
-    //    if (oddFrame)
-    //    {
-    //        distance1 = target_distance;
-    //        oddFrame = false;
-    //    }
-    //    else
-    //    {
-    //        distance2 = target_distance;
-    //        oddFrame = true;
-    //        if (distance1 != distance2)
-    //            target_speed = (distance2 - distance1) / Time.deltaTime;
-    //    }
-    //}
     void Where_target()
     {
-        target_angle = Vector3.Angle(radius_vector, this.transform.forward);
+        target_angle = Vector3.Angle(radius_vector, transform.forward);
         if (target_angle < 30)
-            target_orient = "forward";
+            target_orient = Target_orient.forward;
         else if (target_angle >= 150)
-            target_orient = "back";
+            target_orient = Target_orient.back;
         else
-            target_orient = "side";
-        //if (Vector3.Angle(radius_vector, this.transform.right) > 90f)
-        //    target_side = "left";
-        //else
-        //    target_side = "right";
+            target_orient = Target_orient.side;
 
         if (target_distance <= short_range)
-            target_range = "shortrange";
+            target_range = Target_range.shortrange;
         else if (target_distance < long_range)
-            target_range = "middlerange";
+            target_range = Target_range.middlerange;
         else if (target_distance >= long_range)
-            target_range = "longrange";
+            target_range = Target_range.longrange;
     }
     IEnumerator Ship_turn_side()
     {
@@ -1372,7 +1435,7 @@ public class Movement : MonoBehaviour
         yield return new WaitForSeconds(3f);
         isBusy = false;
     }
-    Vector3 NextPosition()
+    private Vector3 NextPosition()
     {
         Vector3 nextPosition;
         float radius;
@@ -1387,5 +1450,26 @@ public class Movement : MonoBehaviour
 
         nextPosition = target.transform.position + radius * new Vector3(Mathf.Sin(angle), 0, Mathf.Cos(angle));
         return nextPosition;
+    }
+    private void Change_speed(float toSpeed, float acceleration_multiplier = 1f)
+    {
+        if (ship_speed + ship_acceleration * acceleration_multiplier < toSpeed)
+        {
+            ship_speed += ship_acceleration * acceleration_multiplier;
+        }
+        else if (ship_speed - ship_breaking * acceleration_multiplier > toSpeed)
+        {
+            ship_speed -= ship_breaking * acceleration_multiplier;
+        }
+        else
+        {
+            ship_speed = toSpeed;
+        }
+    }
+    private float Break_distance()
+    {
+        float break_distance;
+        break_distance = ship_speed * ship_speed / 10 * ship_acceleration;
+        return break_distance;
     }
 }

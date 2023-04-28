@@ -13,6 +13,7 @@ public class AutoCannon : MonoBehaviour
     public float reload_cd;
     private float cd_timer;
     private List<Transform> turrets = new List<Transform>();
+    public bool isFire;
     void Start()
     {
         bullets_in_clip = 20;
@@ -20,13 +21,21 @@ public class AutoCannon : MonoBehaviour
         bullet_damage = 2f;
         bullet_cd = 0.05f;
         reload_cd = 6f;
-        cd_timer = reload_cd;
+        cd_timer = 1f;
+        isFire = false;
         foreach(Transform turret in transform)
         {
             turrets.Add(turret);
         }
     }
-
+    public void onFire()
+    {
+        isFire = true;
+    }
+    public void offFire()
+    {
+        isFire = false;
+    }
     IEnumerator Fire()
     {
         int i = 0;
@@ -36,9 +45,8 @@ public class AutoCannon : MonoBehaviour
             i++;
             if (i == transform.childCount)
                 i = 0;
-            bullet.GetComponent<Bullet>().bullet_speed = bullet_speed;
-            bullet.GetComponent<Bullet>().bullet_damage = bullet_damage;
-            Destroy(bullet, 2);
+            bullet.GetComponent<Bullet>().SetBulletStats(bullet_speed, bullet_damage);
+            Destroy(bullet, 0.5f);
             bullets_in_clip--;
             yield return new WaitForSeconds(bullet_cd);
         }
@@ -47,7 +55,7 @@ public class AutoCannon : MonoBehaviour
     }
     void Update()
     {
-        if (cd_timer < 0)
+        if (cd_timer <= 0 && isFire)
         {
             StartCoroutine(Fire());
             cd_timer = reload_cd;

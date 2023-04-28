@@ -4,49 +4,66 @@ using UnityEngine;
 
 public class RailGun : MonoBehaviour
 {
+    private GameObject target;
     public GameObject shoot_point;
-    public GameObject target;
     private Quaternion q_target;
     LineRenderer lr;
-    public float speedRotation = 5f;
-    private float cd_timer, gauss_cd, gauss_shoot_cd;
-    bool IsGaussFire;
+    private float speedRotation;
+    private float cd_timer, rail_cd, rail_shoot_cd;
+    private bool IsRailFire;
+    public bool isFire { get; private set; }
 
     void Start()
     {
-        gauss_cd = 5f;
-        gauss_shoot_cd = 1f;
+        speedRotation = 10f;
+        rail_cd = 5f;
+        rail_shoot_cd = 1f;
         lr = GetComponent<LineRenderer>();
         lr.positionCount = 2;
-        cd_timer = gauss_cd;
-        IsGaussFire = false;
+        cd_timer = 1f;
+        IsRailFire = false;
     }
     private void FixedUpdate()
     {
         //Debug.DrawRay(shoot_point.transform.position, transform.forward * 200);
     }
+    public void onFire()
+    {
+        isFire = true;
+    }
+    public void offFire()
+    {
+        isFire = false;
+    }
+    public void SetTarget(GameObject target)
+    {
+        this.target = target;
+    }
     void Update()
     {
-        q_target = Quaternion.LookRotation(transform.position - target.transform.position);
-        q_target *= Quaternion.Euler(0, 180, 0);
-        transform.rotation = Quaternion.RotateTowards(transform.rotation, q_target, Time.deltaTime * speedRotation);
+        if (target != null)
+        {
+            q_target = Quaternion.LookRotation(target.transform.position - transform.position);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, q_target, Time.deltaTime * speedRotation);
+        }
+        
         cd_timer -= Time.deltaTime;
-        if (cd_timer < 0)
+        if (cd_timer < 0 && isFire)
         {
             lr.positionCount = 2;
-            IsGaussFire = true;
-            cd_timer = gauss_cd;
+            IsRailFire = true;
+            cd_timer = rail_cd;
             lr.SetPosition(0, shoot_point.transform.position);
-            lr.SetPosition(1, transform.forward * 70);
+            lr.SetPosition(1, shoot_point.transform.position + transform.forward * 70);
         }
-        if (IsGaussFire)
+        if (IsRailFire)
         {
-            gauss_shoot_cd -= Time.deltaTime;
-            if (gauss_shoot_cd < 0)
+            rail_shoot_cd -= Time.deltaTime;
+            if (rail_shoot_cd < 0)
             {
                 lr.positionCount = 0;
-                IsGaussFire = false;
-                gauss_shoot_cd = 1f;
+                IsRailFire = false;
+                rail_shoot_cd = 1f;
             }
         }
     }

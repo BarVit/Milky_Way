@@ -4,28 +4,35 @@ using UnityEngine;
 
 public class GaussGun : MonoBehaviour
 {
+    private GameObject target;
     public GameObject shoot_point;
-    public GameObject target;
     private Quaternion q_target;
-    LineRenderer lr;
-    public float speedRotation = 10f;
+    private LineRenderer lr;
+    public float speedRotation;
     private float cd_timer, rail_cd, rail_charge_and_shoot_cd;
-    private float width;
     bool IsRailFire;
-    private Color color;
+    public bool isFire { get; private set; }
 
-    private float gauss_damage = 20f;
-    private bool one_shot = false;
+    private float gauss_damage;
+    private bool one_shot;
+    private bool justShoot;
+
+    private Vector3 shootPoint = new Vector3(0, 0, 0);
+    private Vector3 transformForward = new Vector3(0,0,0);
 
     void Start()
     {
-        rail_cd = 4f;
-        rail_charge_and_shoot_cd = 2.5f;
+        justShoot = false;
+        isFire = false;
+        one_shot = false;
+        gauss_damage = 30f;
+        speedRotation = 20f;
+        rail_cd = 5f;
+        rail_charge_and_shoot_cd = 3f;
         lr = GetComponent<LineRenderer>();
         lr.positionCount = 2;
-        cd_timer = rail_cd;
+        cd_timer = 1f;
         IsRailFire = false;
-        color = Color.red;
         lr.startWidth = 0.1f;
         lr.endWidth = 0.1f;
     }
@@ -33,13 +40,79 @@ public class GaussGun : MonoBehaviour
     {
         //Debug.DrawRay(shoot_point.transform.position, transform.forward * 200);
     }
+    public void onFire()
+    {
+        isFire = true;
+    }
+    public void offFire()
+    {
+        isFire = false;
+    }
+    public void Fire()
+    {
+        rail_charge_and_shoot_cd -= Time.deltaTime;
+        if (rail_charge_and_shoot_cd > 0)
+        {
+            if (rail_charge_and_shoot_cd < 1f)
+            {
+                lr.startWidth = 0.5f;
+                lr.endWidth = 0.5f;
+                lr.startColor = Color.gray;
+                lr.endColor = Color.gray;
+                if (one_shot)
+                {
+                    if (!justShoot)
+                    {
+                        shootPoint = shoot_point.transform.position;
+                        transformForward = transform.forward;
+                    }
+                    justShoot = true;
+                    Ray ray = new Ray(shoot_point.transform.position, transform.forward * 100);
+                    RaycastHit[] hits = Physics.RaycastAll(ray, 100f);
+                    if (hits.Length > 0)
+                    {
+                        foreach (RaycastHit hit in hits)
+                        {
+                            if (hit.collider.gameObject.tag == "Enemy")
+                                hit.collider.gameObject.GetComponent<Enemy>().TakeDamage(gauss_damage);
+                        }
+                    }
+                }
+                lr.SetPosition(0, shootPoint);
+                lr.SetPosition(1, shootPoint + transformForward * 100);
+                one_shot = false;
+            }
+            else if (rail_charge_and_shoot_cd < 3f)
+            {
+                lr.SetPosition(0, shoot_point.transform.position);
+                lr.SetPosition(1, shoot_point.transform.position + transform.forward * 100);
+                lr.startWidth = 0.1f;
+                lr.endWidth = 0.1f;
+                lr.startColor = Color.red;
+                lr.endColor = Color.red;
+            }
+        }
+        else
+        {
+            justShoot = false;
+            lr.positionCount = 0;
+            IsRailFire = false;
+            rail_charge_and_shoot_cd = 3f;
+        }
+    }
+    public void SetTarget(GameObject target)
+    {
+        this.target = target;
+    }
     void Update()
     {
-        q_target = Quaternion.LookRotation(transform.position - target.transform.position);
-        q_target *= Quaternion.Euler(0, 180, 0);
-        transform.rotation = Quaternion.RotateTowards(transform.rotation, q_target, Time.deltaTime * speedRotation);
+        if (target != null)
+        {
+            q_target = Quaternion.LookRotation(target.transform.position - transform.position);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, q_target, Time.deltaTime * speedRotation);
+        }
         cd_timer -= Time.deltaTime;
-        if (cd_timer < 0)
+        if (cd_timer < 0 && isFire)
         {
             lr.positionCount = 2;
             IsRailFire = true;
@@ -48,46 +121,7 @@ public class GaussGun : MonoBehaviour
         }
         if (IsRailFire)
         {
-            rail_charge_and_shoot_cd -= Time.deltaTime;
-            lr.SetPosition(0, shoot_point.transform.position);
-            lr.SetPosition(1, transform.forward * 30);
-            if (rail_charge_and_shoot_cd > 0)
-            {
-                if (rail_charge_and_shoot_cd < 0.5f)
-                {
-                    lr.startWidth = 0.5f;
-                    lr.endWidth = 0.5f;
-                    lr.startColor = Color.gray;
-                    lr.endColor = Color.gray;
-                    if (one_shot)
-                    {
-                        Ray ray = new Ray(shoot_point.transform.position, transform.forward * 50);
-                        RaycastHit[] hits = Physics.RaycastAll(ray);
-                        if (hits.Length > 0)
-                        {
-                            foreach (RaycastHit hit in hits)
-                            {
-                                if (hit.collider.gameObject.tag == "Enemy")
-                                    hit.collider.gameObject.GetComponent<Enemy>().TakeDamage(gauss_damage);
-                            }
-                        }
-                    }
-                    one_shot = false;
-                }
-                else if (rail_charge_and_shoot_cd < 2.5f)
-                {
-                    lr.startWidth = 0.1f;
-                    lr.endWidth = 0.1f;
-                    lr.startColor = Color.red;
-                    lr.endColor = Color.red;
-                }
-            }
-            else
-            {
-                lr.positionCount = 0;
-                IsRailFire = false;
-                rail_charge_and_shoot_cd = 2.5f;
-            }
+            Fire();
         }
     }
 }
