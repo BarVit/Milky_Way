@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class Player_ship : MonoBehaviour
 {
+    public List<Weapon> _weapons = new List<Weapon>();
+
     public GameObject hp_bar;
     private EnemyWaveSpawner waveSpawner;
     public GameObject spaceBase;
@@ -18,38 +20,27 @@ public class Player_ship : MonoBehaviour
     public float shield_hp = 200f;
     public float armor_resistance = 1.25f;
     public float hp = 100f;
-    private Cannon weapon1;
-    private AutoCannon weapon2;
-    private Laser weapon3;
-    private PlasmaGun weapon4;
-    private IonCannon weapon5;
-    private GaussGun weapon6;
-    private RailGun weapon7;
-    private float orbit_range = 30f;
 
+    private float orbit_range = 30f;
     private float target_angle;
-    private Vector3 radius_vector;
+    //private Vector3 radius_vector;
 
     private float target_distance;
-    private float long_range = 250f;
-    private float short_range = 30f;
+    //private float long_range = 250f;
+    //private float short_range = 30f;
 
 
     void Start()
     {
+        for (int i = 0; i < transform.childCount; i++)
+        {
+            if (transform.GetChild(i).GetComponent<Weapon>() != null)
+                _weapons.Add(transform.GetChild(i).GetComponent<Weapon>());
+        }
         waveSpawner = GameObject.Find("GameManager").GetComponent<EnemyWaveSpawner>();
         orbitRender = gameObject.GetComponent<LineRenderer>();
         movement = gameObject.GetComponent<Movement>();
         enemies = GameObject.FindGameObjectsWithTag("Enemy");
-
-
-        //weapon1 = transform.Find("Cannon").GetComponent<Cannon>();
-        //weapon2 = transform.Find("AutoCannon").GetComponent<AutoCannon>();
-        //weapon3 = transform.Find("Laser").GetComponent<Laser>();
-        weapon4 = GetComponentInChildren<PlasmaGun>();
-        //weapon5 = GetComponentInChildren<IonCannon>();
-        //weapon6 = GetComponentInChildren<GaussGun>();
-        //weapon7 = GetComponentInChildren<RailGun>();
 
         NextTarget();
         Where_target();
@@ -60,56 +51,28 @@ public class Player_ship : MonoBehaviour
         Controller();
         TimeScale();
         if (target == null) NextTarget();
-        if (target != null) Where_target();
-        if (weapon1 != null)
+        else
         {
-            if (!weapon1.isFire && target_distance < 50f && target_angle < 15f && movement.moving_type != Movement.Moving_type.standby)
-                weapon1.onFire();
-            else
-                weapon1.offFire();
+            Where_target();
+            if (movement.moving_type != Movement.Moving_type.standby && target.tag == "Enemy")
+            {
+                foreach (Weapon w in _weapons)
+                {
+                    if (!w.isFire && target_distance < w.weapon_range * 0.9f && target_angle < w.weapon_targeting_angle)
+                        w.onFire();
+                    else
+                        w.offFire();
+                }
+            }
+            else if (movement.moving_type == Movement.Moving_type.standby || target == null)
+            {
+                foreach (Weapon w in _weapons)
+                {
+                    w.offFire();
+                }
+            }
         }
-        if (weapon2 != null)
-        {
-            if (!weapon2.isFire && target_distance < 35f && target_angle < 15f && movement.moving_type != Movement.Moving_type.standby)
-                weapon2.onFire();
-            else
-                weapon2.offFire();
-        }
-        if (weapon3 != null)
-        {
-            if (!weapon3.isFire && target_distance < 45f && movement.moving_type != Movement.Moving_type.standby)
-                weapon3.onFire();
-            else
-                weapon3.offFire();
-        }
-        if (weapon4 != null && target != null)
-        {
-            if (!weapon4.isFire && target_distance < 100f && movement.moving_type != Movement.Moving_type.standby)
-                weapon4.onFire();
-            else
-                weapon4.offFire();
-        }
-        if (weapon5 != null && target != null)
-        {
-            if (!weapon5.isFire && target_distance < 80f && movement.moving_type != Movement.Moving_type.standby)
-                weapon5.onFire();
-            else
-                weapon5.offFire();
-        }
-        if (weapon6 != null && target != null)
-        {
-            if (!weapon6.isFire && target_distance < 180f && movement.moving_type != Movement.Moving_type.standby)
-                weapon6.onFire();
-            else
-                weapon6.offFire();
-        }
-        if (weapon7 != null && target != null)
-        {
-            if (!weapon7.isFire && target_distance < 90f && movement.moving_type != Movement.Moving_type.standby)
-                weapon7.onFire();
-            else
-                weapon7.offFire();
-        }
+        
     }
 
     public void TakeDamage(float damage)
@@ -140,7 +103,10 @@ public class Player_ship : MonoBehaviour
             min_distance = (targets[0].transform.position - transform.position).sqrMagnitude;
             target = targets[0];
             movement.SetTarget(target);
-            weapon4.SetTarget(target);
+            foreach (Weapon w in _weapons)
+            {
+                w.SetTarget(target);
+            }
             for (int i = 0; i < targets.Count; i++)
             {
                 distance = (targets[i].transform.position - transform.position).sqrMagnitude;
@@ -149,7 +115,10 @@ public class Player_ship : MonoBehaviour
                     distance = min_distance;
                     target = targets[i];
                     movement.SetTarget(target);
-                    weapon4.SetTarget(target);
+                    foreach (Weapon w in _weapons)
+                    {
+                        w.SetTarget(target);
+                    }
                 }
             }
         }
@@ -185,12 +154,11 @@ public class Player_ship : MonoBehaviour
         //вернуться на базу
         if (Input.GetKeyDown(KeyCode.B))
         {
-            movement.MovingType('b');
             target = spaceBase;
             movement.SetTarget(target);
-            weapon3.offFire();
+            movement.MovingType('b');
         }
-            
+
         //полет в точку
 
     }

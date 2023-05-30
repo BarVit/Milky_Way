@@ -2,32 +2,45 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Cannon : MonoBehaviour
+public class Cannon : Weapon
 {
     public GameObject bulletPref;
     private GameObject bullet;
-    public float bullet_speed;
-    public float shoot_cd;
-    private float cd_timer;
+    private float bullet_speed;
     private float bullet_damage;
-    public bool isFire {get; private set; }
-    void Start()
+    private void Start()
     {
-        bullet_speed = 60f;
-        bullet_damage = 20f;
-        shoot_cd = 1f;
+        ship = transform.parent;
+        weapon_moving_angle = 10f;
+        weapon_targeting_angle = 20f;
+        weapon_range = 60f;
+        speedRotation = 20f;
+        weapon_cd = 1f;
         cd_timer = 0f;
         isFire = false;
+        bullet_speed = 60f;
+        bullet_damage = 20f;
     }
-    public void onFire()
+    private void FixedUpdate()
     {
-        isFire = true;
+        //Weapon_Limits(weapon_moving_angle);
+        //Debug.DrawRay(transform.position, weapon_left_limit * 100, Color.yellow);
+        //Debug.DrawRay(transform.position, weapon_right_limit * 100, Color.yellow);
+        //Debug.DrawRay(transform.position, transform.forward * 100, Color.red);
+        //Debug.DrawRay(ship.position, ship.forward * 100, Color.green);
+        //Debug.DrawRay(ship.position, (target.transform.position - ship.transform.position) * 100);
+
+        if (weapon_moving_angle < 360)
+            Weapon_to_target();
+
+        cd_timer -= Time.fixedDeltaTime;
+        if (cd_timer <= 0 && isFire)
+        {
+            Fire();
+            cd_timer = weapon_cd;
+        }
     }
-    public void offFire()
-    {
-        isFire = false;
-    }
-    public void Fire()
+    public override void Fire()
     {
         bullet = Instantiate(bulletPref, transform.position, transform.rotation);
         bullet.GetComponent<Bullet>().SetBulletStats(bullet_speed, bullet_damage);
@@ -36,12 +49,6 @@ public class Cannon : MonoBehaviour
     }
     void Update()
     {
-        if (cd_timer <= 0 && isFire)
-        {
-            Fire();
-            cd_timer = shoot_cd;
-        }
-        cd_timer -= Time.deltaTime;
     }
 
 }

@@ -7,7 +7,7 @@ public class Enemy : MonoBehaviour
 {
     private Image hp_bar;
     private Transform goToFind;
-    private float enemy_shield_hp = 100f;
+    //private float enemy_shield_hp = 100f;
     private float enemy_hp;
     private float enemy_max_hp = 50f;
     [SerializeField] private Gradient gradient;

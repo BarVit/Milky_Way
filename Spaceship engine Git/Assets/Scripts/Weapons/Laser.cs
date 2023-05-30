@@ -2,69 +2,92 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Laser : MonoBehaviour
+public class Laser : Weapon
 {
-    private Player_ship player;
     public GameObject shoot_point;
-    private GameObject target;
+    // ласт таргет для отключения лазера после убийства цели (или не отключать, еще не решил)
     private GameObject last_target;
-    private Quaternion q_target;
     LineRenderer lr;
-    public float speedRotation = 20f;
-    private float cd_timer, laser_cd, laser_light_cd;
+    private float laser_light_cd;
+    private float laser_afterLight_cd;
     bool IsLaserFire;
+    bool afterLight;
     private Color color;
-    public bool isFire { get; private set; }
-
     private float laser_damage;
 
     private void Awake()
     {
-        player = GameObject.Find("Ship_2").GetComponent<Player_ship>();
-        target = player.target;
+        
     }
     void Start()
     {
-        laser_damage = 12f;
-        laser_cd = 7f;
+        ship = transform.parent;
+        speedRotation = 20f;
+        weapon_range = 70f;
+        weapon_moving_angle = 360f;
+        weapon_targeting_angle = 360f;
+        laser_damage = 8f;
+        weapon_cd = 2f;
         laser_light_cd = 5f;
+        laser_afterLight_cd = 0;
+
+
         lr = GetComponent<LineRenderer>();
         lr.positionCount = 2;
-        //обычное кд 7 сек, ставлю 2 сек для более быстрых тестов
-        //cd_timer = laser_cd;
-        cd_timer = 2f;
+        cd_timer = 1f;
         IsLaserFire = false;
+        afterLight = false;
         color = Color.green;
 
         isFire = false;
+        
     }
     private void FixedUpdate()
     {
-        Debug.DrawRay(shoot_point.transform.position, transform.forward * 50);
-        if (target != null)
+        //Debug.DrawRay(shoot_point.transform.position, transform.forward * 50);
+        
+        if (weapon_targeting_angle < 360f)
+        {
+            Weapon_to_target();
+        }
+        else if (target != null)
         {
             q_target = Quaternion.LookRotation(target.transform.position - transform.position);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, q_target, Time.deltaTime * speedRotation);
-            cd_timer -= Time.deltaTime;
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, q_target, Time.fixedDeltaTime * speedRotation);
+        }
+           
+        if (target != null)
+        {
+            cd_timer -= Time.fixedDeltaTime;
             if (cd_timer <= 0 && isFire)
             {
                 IsLaserFire = true;
-                cd_timer = laser_cd + laser_light_cd;
+                cd_timer = weapon_cd + laser_light_cd;
+                last_target = target;
             }
 
             if (laser_light_cd > 0 && IsLaserFire)
             {
                 lr.positionCount = 2;
-                laser_light_cd -= 0.02f;
-                last_target = target;
+                laser_light_cd -= Time.fixedDeltaTime;
                 Fire();
+                if (last_target == null && !afterLight)
+                {
+                    if (laser_light_cd > 0.2f)
+                    {
+                        laser_afterLight_cd = laser_light_cd - 0.2f;
+                        afterLight = true;
+                    }
+                }
             }
-            else if (laser_light_cd <= 0)
+            if ((laser_light_cd - laser_afterLight_cd) <= 0)
             {
                 lr.positionCount = 0;
                 laser_light_cd = 5f;
+                laser_afterLight_cd = 0;
                 color = Color.green;
                 IsLaserFire = false;
+                afterLight = false;
             }
         }
         else
@@ -74,21 +97,14 @@ public class Laser : MonoBehaviour
             color = Color.green;
         }
     }
-    public void onFire()
-    {
-        isFire = true;
-    }
-    public void offFire()
-    {
-        isFire = false;
-    }
-    private void Fire()
+
+    public override void Fire()
     {
         lr.SetPosition(0, shoot_point.transform.position);
         lr.SetPosition(1, shoot_point.transform.position + transform.forward * 50);
         lr.startColor = color;
         lr.endColor = color;
-        Debug.DrawRay(shoot_point.transform.position, transform.forward * 50);
+        //Debug.DrawRay(shoot_point.transform.position, transform.forward * 50);
         Ray ray = new Ray(shoot_point.transform.position, transform.forward * 50);
         RaycastHit hit;
         if (Physics.Raycast(ray, out hit, 50f))
@@ -106,12 +122,8 @@ public class Laser : MonoBehaviour
         else
             color = Color.green;
     }
-    public void SetTarget(GameObject target)
-    {
-        this.target = target;
-    }
+
     void Update()
     {
-
     }
 }

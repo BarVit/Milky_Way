@@ -5,32 +5,44 @@ using UnityEngine;
 public class Movement : MonoBehaviour
 {
     public GameObject spaceBase;
-    private GameObject[] enemies;
-    private List<GameObject> targets = new List<GameObject>();
+    //private GameObject[] enemies;
+    //private List<GameObject> targets = new List<GameObject>();
     private GameObject target;
 
     public AnimationCurve turn_curve;
     public AnimationCurve acceleration_curve;
 
     [Header("Ship movement stats")]
+    private float ship_base_acceleration;
+    private float ship_base_breaking;
     public float ship_acceleration;
     public float ship_breaking;
     public float ship_speed;
+    public float ship_maneuver_speed;
     public float ship_side_speed;
     public float ship_turn_speed;
 
+    //максимальный и разгон и минимальное плавное торможение
     public float ship_max_acceleration;
+    public float ship_min_acceleration;
+    public float ship_parking_acceleration;
     public float ship_max_breaking;
+    public float ship_min_breaking;
+
     public float ship_max_speed;
+    private float ship_min_speed;
+    private float ship_parking_speed;
     public float ship_max_side_speed;
     public float ship_max_turn_speed;
     public float ship_max_back_speed;
+    public float ship_min_back_speed;
 
     [SerializeField] float ship_calc_speed;
     [SerializeField] float ship_calc_turn_speed;
 
     [SerializeField] int ship_turn_side;
 
+    private float time_modification;
 
     private Quaternion q_ship;
     private Vector3 radius_vector;
@@ -52,7 +64,7 @@ public class Movement : MonoBehaviour
     private Target_orient target_orient;
     private Target_range target_range;
 
-    public enum Moving_type 
+    public enum Moving_type
     {
         front_attack,
         forward_attack,
@@ -64,13 +76,19 @@ public class Movement : MonoBehaviour
         move_to_point
     }
     public Moving_type moving_type;
-    [SerializeField] float target_distance;
+    [SerializeField] private float target_distance;
+    [SerializeField] private float br_dist;
+    [SerializeField] private float breaking_to_stop;
+    [SerializeField] private float l_speed;
 
     //заданная орбита
     public float orbit_range = 30f;
 
-    private float long_range = 250f;
+    private float long_range = 240f;
     private float short_range = 30f;
+
+
+    private float parking_distance;
     private float ship_break_distance;
 
     private float fi;
@@ -81,50 +99,75 @@ public class Movement : MonoBehaviour
     void Start()
     {
         ship_speed = 0;
-        ship_acceleration = 1f;
-        ship_breaking = 1f;
-        ship_max_breaking = 2f;
-        ship_max_acceleration = 2f;
         ship_max_speed = 50f;
-        ship_max_back_speed = -10f;
+        ship_maneuver_speed = ship_max_speed / 5f;
+        ship_max_back_speed = -ship_max_speed / 5f;
+        ship_min_back_speed = -ship_max_speed / 25f;
+        // 25 это коэффициент пропорциональный два тика в фиксапдейт
+        ship_min_speed = ship_max_speed / 25f;
+        ship_parking_speed = ship_max_speed * 0.1f;
+        ship_base_acceleration = 1f;
+        ship_base_breaking = 1f;
+        ship_max_acceleration = 2f;
+        ship_min_acceleration = 0.5f;
+        ship_parking_acceleration = 0.25f;
+        ship_max_breaking = 2f;
+        ship_min_breaking = 0.5f;
         ship_max_turn_speed = 50f;
-        ship_turn_speed = 30f;
-        ship_side_speed = 0;
         ship_max_side_speed = 0.2f * ship_max_speed;
-        moving_type = Moving_type.standby;
 
+        // пересчет на секунды исходя из waitForSeconds 0.1f
+        time_modification = 1 / 0.1f;
+        parking_distance = 20f;
+
+        moving_type = Moving_type.standby;
         Ship_start();
     }
     private void Ship_start()
     {
         Debug.Log("Start");
-        moving_type = Moving_type.standby;
         //Горизонтальное покачивание в режиме покоя
     }
 
     IEnumerator Move_to_point()
     {
-        Debug.Log("Move to point" + target.name);
+        Debug.Log("Move to point " + target.name);
         while (true)
         {
-            if (target_orient == Target_orient.back)
-                Change_speed(5, 3);
-            if (target_orient == Target_orient.forward)
+            breaking_to_stop = ship_speed * ship_speed / (2 * target_distance * time_modification);
+
+            if (breaking_to_stop > ship_base_breaking) breaking_to_stop = ship_max_breaking;
+            else if (breaking_to_stop > ship_min_breaking) breaking_to_stop = ship_base_breaking;
+            else if (breaking_to_stop > ship_parking_acceleration) breaking_to_stop = ship_min_breaking;
+            else breaking_to_stop = ship_parking_acceleration;
+
+            switch (target_orient)
             {
-                if (target_distance > ship_max_speed * ship_max_speed / 10 * ship_acceleration)
-                    Change_speed(50, 3);
-                else if (target_distance < Break_distance() + 15)
-                    Change_speed(5, ship_acceleration);
-                else if (target_distance < 5)
-                    Change_speed(2);
-                else if (target_distance < 1)
+                case Target_orient.back:
+                    Change_speed(0, ship_max_breaking);
+                    break;
+                case Target_orient.side:
                     Change_speed(0);
-                else
-                    Change_speed(50);
+                    break;
+                case Target_orient.forward:
+                    if (target_distance <= 1f)
+                        Change_speed(0);
+                    else if (target_distance < parking_distance)
+                    {
+                        if (breaking_to_stop > ship_parking_acceleration)
+                            Change_speed(ship_min_speed, breaking_to_stop);
+                        else
+                            Change_speed(ship_parking_speed, breaking_to_stop);
+                    }
+                    else
+                    {
+                        if (breaking_to_stop >= ship_base_breaking)
+                            Change_speed(ship_parking_speed, breaking_to_stop);
+                        else
+                            Change_speed(ship_max_speed);
+                    }
+                    break;
             }
-                
-            if (target_orient == Target_orient.side)
-                Change_speed(10);
             yield return new WaitForSeconds(0.1f);
         }
     }
@@ -133,210 +176,105 @@ public class Movement : MonoBehaviour
         Debug.Log("Front attack");
         while (true)
         {
-            switch (target_range)
+            float orbit_distance;
+            orbit_distance = Mathf.Abs(target_distance - orbit_range);
+            breaking_to_stop = ship_speed * ship_speed / (2 * orbit_distance * time_modification);
+            if (breaking_to_stop > ship_base_breaking) breaking_to_stop = ship_max_breaking;
+            else if (breaking_to_stop > ship_min_breaking) breaking_to_stop = ship_base_breaking;
+            else if (breaking_to_stop > ship_parking_acceleration) breaking_to_stop = ship_min_breaking;
+            else breaking_to_stop = ship_parking_acceleration;
+
+            if (target_distance > orbit_range * 8)
+            //longrange
             {
-                case Target_range.longrange:
-                    if (target_orient == Target_orient.back)
-                    {
-                        if (ship_speed > 10)
+                switch (target_orient)
+                {
+                    case Target_orient.back:
+                        Change_speed(ship_maneuver_speed, ship_max_breaking);
+                        break;
+                    case Target_orient.side:
+                        Change_speed(ship_maneuver_speed);
+                        break;
+                    case Target_orient.forward:
+                        Change_speed(ship_max_speed, ship_max_acceleration);
+                        break;
+                }
+            }
+            else if (target_distance < orbit_range)
+            //shortrange
+            {
+                switch (target_orient)
+                {
+                    case Target_orient.back:
+                        Change_speed(ship_min_speed, ship_max_breaking);
+                        break;
+                    case Target_orient.side:
+                        Change_speed(0);
+                        break;
+                    case Target_orient.forward:
+                        if (target_distance < orbit_range * 0.8f)
                         {
-                            ship_speed -= 3f;
-                        }
-                        else
-                        {
-                            ship_speed += 1f;
-                        }
-                        if (ship_turn_speed < 50)
-                        {
-                            ship_turn_speed += 2f;
-                        }
-                    }
-                    if (target_orient == Target_orient.forward)
-                    {
-                        if (ship_speed < 50)
-                        {
-                            ship_speed += 3f;
-                        }
-                        else
-                        {
-                            ship_speed -= 1f;
-                        }
-                        if (ship_turn_speed > 10)
-                        {
-                            ship_turn_speed -= 1f;
-                        }
-                    }
-                    if (target_orient == Target_orient.side)
-                    {
-                        if (ship_speed > 10)
-                        {
-                            ship_speed -= 1f;
-                        }
-                        else
-                        {
-                            ship_speed += 1f;
-                        }
-                        if (ship_turn_speed < 50)
-                        {
-                            ship_turn_speed += 3f;
-                        }
-                    }
-                    break;
-                case Target_range.middlerange:
-                    if (target_orient == Target_orient.back)
-                    {
-                        if (ship_speed > 10)
-                        {
-                            ship_speed -= 3f;
-                        }
-                        else
-                        {
-                            ship_speed += 1f;
-                        }
-                        if (ship_turn_speed < 50)
-                        {
-                            ship_turn_speed += 2f;
-                        }
-                    }
-                    if (target_orient == Target_orient.forward)
-                    {
-                        ship_break_distance = ship_speed * ship_speed / (10 * 2);
-                        if (target_distance < orbit_range * 1.03f)
-                        {
-                            if (ship_speed > 0)
+                            if (breaking_to_stop == ship_min_breaking)
                             {
-                                ship_speed -= 0.5f;
+                                //сохраняем скорость
+                            }
+                            else if (breaking_to_stop >= ship_base_breaking)
+                                Change_speed(ship_min_back_speed, breaking_to_stop);
+                            else
+                                Change_speed(ship_max_back_speed);
+                        }
+                        else if (target_distance < orbit_range * 0.975f)
+                        {
+                            if (breaking_to_stop >= ship_min_breaking)
+                                Change_speed(ship_min_back_speed, breaking_to_stop);
+                            else if (breaking_to_stop == ship_parking_acceleration)
+                                Change_speed(ship_speed + ship_min_acceleration, ship_min_acceleration);
+                        }
+                        else
+                            Change_speed(0, breaking_to_stop);
+                        break;
+                }
+            }
+            else
+            //midrange
+            {
+                switch (target_orient)
+                {
+                    case Target_orient.back:
+                        Change_speed(ship_maneuver_speed, ship_max_breaking);
+                        break;
+                    case Target_orient.side:
+                        Change_speed(ship_maneuver_speed, ship_max_breaking);
+                        break;
+                    case Target_orient.forward:
+                        if (target_distance < orbit_range * 1.025f)
+                            Change_speed(0, breaking_to_stop);
+                        else if (target_distance < orbit_range * 1.5f)
+                        {
+                            if (breaking_to_stop > ship_min_breaking)
+                                Change_speed(ship_min_speed, breaking_to_stop);
+                            else if (breaking_to_stop == ship_parking_acceleration)
+                                Change_speed(ship_speed + ship_min_acceleration, ship_min_acceleration);
+                        }
+                        else
+                        {
+                            if (breaking_to_stop <= ship_min_breaking)
+                            {
+                                //сохраняем скорость
+                            }
+                            else if (breaking_to_stop == ship_base_breaking)
+                                Change_speed(ship_min_speed, ship_base_breaking);
+                            else if (breaking_to_stop == ship_max_breaking)
+                                Change_speed(ship_min_speed, ship_max_breaking);
+                            else if (breaking_to_stop > ship_max_breaking)
+                            {
+                                //должен быть поворот на касательную, отсюда через эту корутину реализовать неудобно. Реализвать позже, через фикседапдейт
                             }
                             else
-                            {
-                                ship_speed += 0.5f;
-                            }
-                            if (ship_turn_speed < 50)
-                            {
-                                ship_turn_speed += 2f;
-                            }
-                            else
-                            {
-                                ship_turn_speed -= 1f;
-                            }
+                                Change_speed(ship_max_speed);
                         }
-                        else if (target_distance < ship_break_distance + orbit_range * 1.1f || target_distance < orbit_range * 1.1f)
-                        {
-                            if (ship_speed > 5)
-                            {
-                                ship_speed -= 2f;
-                            }
-                            else
-                            {
-                                ship_speed += 1f;
-                            }
-                            if (ship_turn_speed < 50)
-                            {
-                                ship_turn_speed += 2f;
-                            }
-                            else
-                            {
-                                ship_turn_speed -= 1f;
-                            }
-                        }
-                        else if (target_distance < 3 * orbit_range)
-                        {
-                            if (ship_speed > 30)
-                            {
-                                ship_speed -= 2f;
-                            }
-                            else
-                            {
-                                ship_speed += 1f;
-                            }
-                            if (ship_turn_speed < 30)
-                            {
-                                ship_turn_speed += 2f;
-                            }
-                            else
-                            {
-                                ship_turn_speed -= 1f;
-                            }
-                        }
-                        else if (target_distance > 3 * orbit_range)
-                        {
-                            if (ship_speed < 50)
-                            {
-                                ship_speed += 2f;
-                            }
-                            else
-                            {
-                                ship_speed -= 1f;
-                            }
-                        }
-                        if (ship_turn_speed > 10)
-                        {
-                            ship_turn_speed -= 1f;
-                        }
-                    }
-                    if (target_orient == Target_orient.side)
-                    {
-                        if (ship_speed > 10)
-                        {
-                            ship_speed -= 3f;
-                        }
-                        else
-                        {
-                            ship_speed += 1f;
-                        }
-                        if (ship_turn_speed < 50)
-                        {
-                            ship_turn_speed += 2f;
-                        }
-                    }
-                    break;
-                case Target_range.shortrange:
-                    if (target_orient == Target_orient.back)
-                    {
-                        if (ship_speed > 5)
-                        {
-                            ship_speed -= 2f;
-                        }
-                        else
-                        {
-                            ship_speed += 1f;
-                        }
-                        if (ship_turn_speed < 50)
-                        {
-                            ship_turn_speed += 2f;
-                        }
-                    }
-                    if (target_orient == Target_orient.forward)
-                    {
-                        if (ship_speed > 0.5 * ship_max_back_speed)
-                        {
-                            ship_speed -= 1f;
-                        }
-                        else
-                        {
-                            ship_speed += 1f;
-                        }
-                        if (ship_turn_speed < 50)
-                        {
-                            ship_turn_speed += 2f;
-                        }
-                    }
-                    if (target_orient == Target_orient.side)
-                    {
-                        if (ship_speed > 0)
-                        {
-                            ship_speed -= 2f;
-                        }
-                        else
-                        {
-                            ship_speed += 1f;
-                        }
-                        if (ship_turn_speed < 50)
-                        {
-                            ship_turn_speed += 2f;
-                        }
-                    }
-                    break;
+                        break;
+                }
             }
             yield return new WaitForSeconds(0.1f);
         }
@@ -350,158 +288,32 @@ public class Movement : MonoBehaviour
             {
                 case Target_range.longrange:
                     if (target_orient == Target_orient.back)
-                    {
-                        if (ship_speed > 10)
-                        {
-                            ship_speed -= 3f;
-                        }
-                        else
-                        {
-                            ship_speed += 1f;
-                        }
-                        if (ship_turn_speed < 50)
-                        {
-                            ship_turn_speed += 2f;
-                        }
-                    }
-                    if (target_orient == Target_orient.forward)
-                    {
-                        if (ship_speed < 50)
-                        {
-                            ship_speed += 3f;
-                        }
-                        else
-                        {
-                            ship_speed -= 1f;
-                        }
-                        if (ship_turn_speed > 10)
-                        {
-                            ship_turn_speed -= 1f;
-                        }
-                    }
+                        Change_speed(ship_maneuver_speed, ship_max_breaking);
                     if (target_orient == Target_orient.side)
-                    {
-                        if (ship_speed > 10)
-                        {
-                            ship_speed -= 1f;
-                        }
-                        else
-                        {
-                            ship_speed += 1f;
-                        }
-                        if (ship_turn_speed < 50)
-                        {
-                            ship_turn_speed += 3f;
-                        }
-                    }
+                        Change_speed(ship_maneuver_speed);
+                    if (target_orient == Target_orient.forward)
+                        Change_speed(ship_max_speed, ship_max_acceleration);
                     break;
                 case Target_range.middlerange:
                     if (target_orient == Target_orient.back)
-                    {
-                        if (ship_speed < 50)
-                        {
-                            ship_speed += 3f;
-                        }
-                        else
-                        {
-                            ship_speed -= 1f;
-                        }
-                        if (ship_turn_speed > 10)
-                        {
-                            ship_turn_speed -= 1f;
-                        }
-                    }
+                        Change_speed(ship_max_speed, ship_max_acceleration);
+                    if (target_orient == Target_orient.side)
+                        Change_speed(ship_max_speed, ship_max_acceleration);
                     if (target_orient == Target_orient.forward)
                     {
                         if (target_distance > 3 * orbit_range)
-                        {
-                            if (ship_speed < 50)
-                            {
-                                ship_speed += 2f;
-                            }
-                            else
-                            {
-                                ship_speed -= 1f;
-                            }
-                        }
+                            Change_speed(ship_max_speed, ship_max_acceleration);
                         else
-                        {
-                            if (ship_speed > 30)
-                            {
-                                ship_speed -= 2f;
-                            }
-                            else
-                            {
-                                ship_speed += 2f;
-                            }
-                        }
-                        if (ship_turn_speed > 5)
-                        {
-                            ship_turn_speed -= 1f;
-                        }
-                    }
-                    if (target_orient == Target_orient.side)
-                    {
-                        if (ship_speed < 50)
-                        {
-                            ship_speed += 2f;
-                        }
-                        else
-                        {
-                            ship_speed -= 1f;
-                        }
-                        if (ship_turn_speed > 10)
-                        {
-                            ship_turn_speed -= 1f;
-                        }
+                            Change_speed(30);
                     }
                     break;
                 case Target_range.shortrange:
                     if (target_orient == Target_orient.back)
-                    {
-                        if (ship_speed < 30)
-                        {
-                            ship_speed += 2f;
-                        }
-                        else
-                        {
-                            ship_speed -= 1f;
-                        }
-                        if (ship_turn_speed > 10)
-                        {
-                            ship_turn_speed -= 2f;
-                        }
-                    }
-                    if (target_orient == Target_orient.forward)
-                    {
-                        if (ship_speed > 20)
-                        {
-                            ship_speed -= 2f;
-                        }
-                        else
-                        {
-                            ship_speed += 1f;
-                        }
-                        if (ship_turn_speed < 20)
-                        {
-                            ship_turn_speed += 5f;
-                        }
-                    }
+                        Change_speed(30);
                     if (target_orient == Target_orient.side)
-                    {
-                        if (ship_speed < 30)
-                        {
-                            ship_speed += 2f;
-                        }
-                        else
-                        {
-                            ship_speed -= 1f;
-                        }
-                        if (ship_turn_speed < 20)
-                        {
-                            ship_turn_speed += 5f;
-                        }
-                    }
+                        Change_speed(30);
+                    if (target_orient == Target_orient.forward)
+                        Change_speed(20);
                     break;
             }
             yield return new WaitForSeconds(0.1f);
@@ -1222,8 +1034,8 @@ public class Movement : MonoBehaviour
         //Debug.DrawRay(this.transform.position, (target.transform.position - this.transform.position) * 50);
 
         ship_turn_speed = ship_max_turn_speed * turn_curve.Evaluate(ship_speed / ship_max_speed);
-        ship_acceleration = acceleration_curve.Evaluate(ship_speed / ship_max_speed);
-        ship_breaking = acceleration_curve.Evaluate((ship_max_speed - ship_speed) / ship_max_speed);
+        ship_acceleration = ship_base_acceleration * acceleration_curve.Evaluate(ship_speed / ship_max_speed);
+        ship_breaking = ship_base_acceleration * acceleration_curve.Evaluate((ship_max_speed - ship_speed) / ship_max_speed);
     }
 
     public void MovingType(char movingType)
@@ -1277,10 +1089,9 @@ public class Movement : MonoBehaviour
             radius_vector = target.transform.position - transform.position;
             Where_target();
 
+            q_ship = Quaternion.LookRotation(target.transform.position - transform.position);
             if (moving_type == Moving_type.front_attack)
             {
-                q_ship = Quaternion.LookRotation(transform.position - target.transform.position);
-                q_ship *= Quaternion.Euler(0, 180, 0);
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
                 transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
             }
@@ -1288,8 +1099,6 @@ public class Movement : MonoBehaviour
             {
                 if (target_range != Target_range.shortrange)
                 {
-                    q_ship = Quaternion.LookRotation(transform.position - target.transform.position);
-                    q_ship *= Quaternion.Euler(0, 180, 0);
                     transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
                     transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
                 }
@@ -1299,8 +1108,8 @@ public class Movement : MonoBehaviour
                     {
                         StartCoroutine(Ship_turn_side());
                     }
-                    this.transform.Rotate(new Vector3(0, ship_turn_side * ship_turn_speed, 0) * Time.deltaTime);
-                    this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
+                    transform.Rotate(new Vector3(0, ship_turn_side * ship_turn_speed, 0) * Time.deltaTime);
+                    transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
                 }
             }
             else if (moving_type == Moving_type.side_orbit)
@@ -1329,8 +1138,8 @@ public class Movement : MonoBehaviour
                     //разворот корабля боком к цели на малой дистанции для выхода на орбиту изнутри
                     q_ship = Quaternion.LookRotation(transform.position - target.transform.position);
                     q_ship *= Quaternion.Euler(0, 90, 0);
-                    this.transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
-                    this.transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
+                    transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
+                    transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
                 }
                 else if (target_range == Target_range.shortrange && target_distance > 0.6f * orbit_range)
                 {
@@ -1401,8 +1210,7 @@ public class Movement : MonoBehaviour
             }
             else if (moving_type == Moving_type.move_to_point)
             {
-                q_ship = Quaternion.LookRotation(transform.position - target.transform.position);
-                q_ship *= Quaternion.Euler(0, 180, 0);
+                q_ship = Quaternion.LookRotation(target.transform.position - transform.position);
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, q_ship, Time.deltaTime * ship_turn_speed);
                 transform.Translate(Vector3.forward * ship_speed * Time.deltaTime);
             }
@@ -1451,25 +1259,86 @@ public class Movement : MonoBehaviour
         nextPosition = target.transform.position + radius * new Vector3(Mathf.Sin(angle), 0, Mathf.Cos(angle));
         return nextPosition;
     }
-    private void Change_speed(float toSpeed, float acceleration_multiplier = 1f)
+    private void Change_speed(float toSpeed)
     {
-        if (ship_speed + ship_acceleration * acceleration_multiplier < toSpeed)
+        //при движении назад, ускорение не больше базового. Быстрый разгон только вперед, в том числе и из минусовой скорости
+        float acceleration;
+        if (toSpeed == ship_speed) acceleration = 0;
+        else if (toSpeed < ship_speed && ship_speed < 0) acceleration = ship_base_acceleration;
+        else acceleration = ship_acceleration;
+
+        if (toSpeed > ship_max_speed) toSpeed = ship_max_speed;
+        if (toSpeed < ship_max_back_speed) toSpeed = ship_max_back_speed;
+
+        //смысл проверок в том, чтобы при ускорении использовать акселерейшн, при торможении брейк, независимо от движения вперед или назад
+        if (ship_speed < 0)
         {
-            ship_speed += ship_acceleration * acceleration_multiplier;
-        }
-        else if (ship_speed - ship_breaking * acceleration_multiplier > toSpeed)
-        {
-            ship_speed -= ship_breaking * acceleration_multiplier;
+            if (ship_speed - acceleration > toSpeed)
+                ship_speed -= acceleration;
+            else if (ship_speed + ship_breaking < toSpeed)
+                ship_speed += ship_breaking;
+            else
+                ship_speed = toSpeed;
         }
         else
         {
-            ship_speed = toSpeed;
+            if (ship_speed + acceleration < toSpeed)
+                ship_speed += acceleration;
+            else if (ship_speed - ship_breaking > toSpeed)
+                ship_speed -= ship_breaking;
+            else
+                ship_speed = toSpeed;
+        }
+    }
+    private void Change_speed(float toSpeed, float acceleration)
+    {
+        if (toSpeed > ship_max_speed) toSpeed = ship_max_speed;
+        if (toSpeed < ship_max_back_speed) toSpeed = ship_max_back_speed;
+
+        //ограничения по мин и макс ускорению в зависимости от движения вперед, назад
+        if (acceleration < ship_min_acceleration || acceleration < ship_min_breaking) acceleration = Mathf.Min(ship_min_acceleration, ship_min_breaking);
+        if (ship_speed > 0)
+        {
+            if (acceleration > ship_max_acceleration || acceleration > ship_max_breaking) acceleration = Mathf.Max(ship_max_acceleration, ship_max_breaking);
+        }
+        else
+        {
+            if (acceleration > ship_base_acceleration) acceleration = ship_base_acceleration;
+        }
+
+        if (ship_speed < 0)
+        {
+            if (ship_speed - acceleration > toSpeed)
+                ship_speed -= acceleration;
+            else if (ship_speed + acceleration < toSpeed)
+                ship_speed += acceleration;
+            else
+                ship_speed = toSpeed;
+        }
+        else
+        {
+            if (ship_speed + acceleration < toSpeed)
+                ship_speed += acceleration;
+            else if (ship_speed - acceleration > toSpeed)
+                ship_speed -= acceleration;
+            else
+                ship_speed = toSpeed;
         }
     }
     private float Break_distance()
     {
         float break_distance;
-        break_distance = ship_speed * ship_speed / 10 * ship_acceleration;
+        break_distance = (ship_speed * ship_speed) / (2 * time_modification * ship_breaking);
+        return break_distance;
+    }
+    private float Break_distance(float acceleration)
+    {
+        if (acceleration < ship_min_acceleration || acceleration < ship_min_breaking)
+            acceleration = Mathf.Min(ship_min_acceleration, ship_min_breaking);
+        if (acceleration > ship_max_acceleration || acceleration > ship_max_breaking)
+            acceleration = Mathf.Max(ship_max_acceleration, ship_max_breaking);
+        float break_distance;
+        break_distance = (ship_speed * ship_speed) / (2 * time_modification * acceleration);
         return break_distance;
     }
 }

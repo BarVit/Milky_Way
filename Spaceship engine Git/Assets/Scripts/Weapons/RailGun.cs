@@ -2,22 +2,26 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class RailGun : MonoBehaviour
+public class RailGun : Weapon
 {
-    private GameObject target;
     public GameObject shoot_point;
-    private Quaternion q_target;
     LineRenderer lr;
-    private float speedRotation;
-    private float cd_timer, rail_cd, rail_shoot_cd;
+    private float rail_shoot_cd;
+    private float rail_damage;
     private bool IsRailFire;
-    public bool isFire { get; private set; }
 
     void Start()
     {
+        ship = transform.parent;
+        weapon_range = 80f;
+        weapon_moving_angle = 360f;
+        weapon_targeting_angle = 360f;
+        rail_damage = 30f;
         speedRotation = 10f;
-        rail_cd = 5f;
+        weapon_cd = 4f;
         rail_shoot_cd = 1f;
+
+
         lr = GetComponent<LineRenderer>();
         lr.positionCount = 2;
         cd_timer = 1f;
@@ -26,39 +30,27 @@ public class RailGun : MonoBehaviour
     private void FixedUpdate()
     {
         //Debug.DrawRay(shoot_point.transform.position, transform.forward * 200);
-    }
-    public void onFire()
-    {
-        isFire = true;
-    }
-    public void offFire()
-    {
-        isFire = false;
-    }
-    public void SetTarget(GameObject target)
-    {
-        this.target = target;
-    }
-    void Update()
-    {
-        if (target != null)
+        if (weapon_targeting_angle < 360f)
+        {
+            Weapon_to_target();
+        }
+        else if (target != null)
         {
             q_target = Quaternion.LookRotation(target.transform.position - transform.position);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, q_target, Time.deltaTime * speedRotation);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, q_target, Time.fixedDeltaTime * speedRotation);
         }
-        
-        cd_timer -= Time.deltaTime;
+
+        cd_timer -= Time.fixedDeltaTime;
         if (cd_timer < 0 && isFire)
         {
             lr.positionCount = 2;
             IsRailFire = true;
-            cd_timer = rail_cd;
-            lr.SetPosition(0, shoot_point.transform.position);
-            lr.SetPosition(1, shoot_point.transform.position + transform.forward * 70);
+            cd_timer = weapon_cd;
+            Fire();
         }
         if (IsRailFire)
         {
-            rail_shoot_cd -= Time.deltaTime;
+            rail_shoot_cd -= Time.fixedDeltaTime;
             if (rail_shoot_cd < 0)
             {
                 lr.positionCount = 0;
@@ -66,5 +58,22 @@ public class RailGun : MonoBehaviour
                 rail_shoot_cd = 1f;
             }
         }
+    }
+    public override void Fire()
+    {
+        lr.SetPosition(0, shoot_point.transform.position);
+        lr.SetPosition(1, shoot_point.transform.position + transform.forward * 100);
+        Ray ray = new Ray(shoot_point.transform.position, transform.forward * 100);
+        RaycastHit hit;
+        if (Physics.Raycast(ray, out hit, 100f))
+        {
+            if (hit.collider.gameObject.tag == "Enemy")
+            {
+                hit.collider.gameObject.GetComponent<Enemy>().TakeDamage(rail_damage);
+            }
+        }
+    }
+    void Update()
+    {
     }
 }

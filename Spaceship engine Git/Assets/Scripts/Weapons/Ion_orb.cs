@@ -17,14 +17,10 @@ public class Ion_orb : MonoBehaviour
     private Quaternion q_target;
     private float lifeTime;
 
-    private void Awake()
-    {
-        
-    }
     void Start()
     {
         lifeTime = 2.5f;
-        orb_turn_speed = 10f;
+        orb_turn_speed = 20f;
         periodic_cd = 0.04f;
         toTargetCenterAfterHit = Vector3.forward;
     }
@@ -50,22 +46,13 @@ public class Ion_orb : MonoBehaviour
     }
     private void FixedUpdate()
     {
-        
-    }
-    public void SetTarget(GameObject target)
-    {
-        this.target = target;
-        targetPosition = target.transform.position;
-    }
-    void Update()
-    {
-        lifeTime -= Time.deltaTime;
+        lifeTime -= Time.fixedDeltaTime;
         if (lifeTime < 0) Destroy(gameObject);
         if (doPeriodicDamage)
         {
-            periodic_cd -= Time.deltaTime;
+            periodic_cd -= Time.fixedDeltaTime;
             if (target != null)
-                transform.position = Vector3.MoveTowards(transform.position, target.transform.position, orb_speed * 0.1f * Time.deltaTime);
+                transform.position = Vector3.MoveTowards(transform.position, target.transform.position, orb_speed * 0.1f * Time.fixedDeltaTime);
             else
                 transform.position = transform.position;
         }
@@ -74,17 +61,25 @@ public class Ion_orb : MonoBehaviour
             if (target != null)
             {
                 q_target = Quaternion.LookRotation(target.transform.position - transform.position);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, q_target, Time.deltaTime * orb_turn_speed);
-                transform.Translate(Vector3.forward * orb_speed * Time.deltaTime);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, q_target, Time.fixedDeltaTime * orb_turn_speed);
+                transform.Translate(Vector3.forward * orb_speed * Time.fixedDeltaTime);
             }
             else if (target == null)
             {
                 if (orb_speed > 0)
-                    orb_speed -= orb_speed * 0.05f * Time.deltaTime;
+                    orb_speed -= orb_speed * 0.05f * Time.fixedDeltaTime;
                 else
                     orb_speed = 0;
-                transform.Translate(Vector3.forward * orb_speed * Time.deltaTime);
+                transform.Translate(Vector3.forward * orb_speed * Time.fixedDeltaTime);
             }
         }
+    }
+    public void SetTarget(GameObject target)
+    {
+        this.target = target;
+        targetPosition = target.transform.position;
+    }
+    void Update()
+    {
     }
 }

@@ -73,6 +73,7 @@ public class EnemyWaveSpawner : MonoBehaviour
         {
             case "close":
                 enemy = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                enemy.transform.localScale *= 1.5f;
                 color = Color.red;
                 break;
             case "long":

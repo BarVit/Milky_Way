@@ -15,7 +15,7 @@ public class Plasma_orb : MonoBehaviour
     private bool isHit;
     private bool onEnter;
     int i = 0;
-    private float scaleUP_tick;
+    //private float scaleUP_tick;
     private void Awake()
     {
 
@@ -23,7 +23,7 @@ public class Plasma_orb : MonoBehaviour
     void Start()
     {
         onEnter = false;
-        scaleUP_tick = 0.02f;
+        //scaleUP_tick = 0.02f;
         isHit = false;
         lifeTime = 10f;
         alpha = GetComponent<MeshRenderer>().material.color;
@@ -59,6 +59,27 @@ public class Plasma_orb : MonoBehaviour
                 i++;
             }
         }
+        lifeTime -= Time.fixedDeltaTime;
+        if (lifeTime < 0) Destroy(gameObject);
+        if (target != null)
+            transform.position = Vector3.MoveTowards(transform.position, target.transform.position, orb_speed * Time.fixedDeltaTime);
+        else if (target == null && !isHit)
+        {
+            Scale_up();
+            if (orb_speed > 0)
+                orb_speed -= orb_speed * 0.85f * Time.fixedDeltaTime;
+            else
+                orb_speed = 0;
+            transform.position = Vector3.MoveTowards(transform.position, targetPosition, orb_speed * Time.fixedDeltaTime);
+            if (lifeTime < 4)
+                Destroy(gameObject, lifeTime);
+            else
+                Destroy(gameObject, 4);
+        }
+        else if (target == null && isHit)
+        {
+            transform.position = transform.position;
+        }
     }
     private void Scale_up()
     {
@@ -83,26 +104,5 @@ public class Plasma_orb : MonoBehaviour
     }
     void Update()
     {
-        lifeTime -= Time.deltaTime;
-        if (lifeTime < 0) Destroy(gameObject);
-        if (target != null)
-            transform.position = Vector3.MoveTowards(transform.position, target.transform.position, orb_speed * Time.deltaTime);
-        else if (target == null && !isHit)
-        {
-            Scale_up();
-            if (orb_speed > 0)
-                orb_speed -= orb_speed * 0.85f * Time.deltaTime;
-            else
-                orb_speed = 0;
-            transform.position = Vector3.MoveTowards(transform.position, targetPosition, orb_speed * Time.deltaTime);
-            if (lifeTime < 4)
-                Destroy(gameObject, lifeTime);
-            else
-                Destroy(gameObject, 4);
-        }
-        else if (target == null && isHit)
-        {
-            transform.position = transform.position;
-        }
     }
 }
